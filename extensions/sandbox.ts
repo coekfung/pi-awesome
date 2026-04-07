@@ -9,9 +9,14 @@
  * how built-in tools can be replaced. Alternatively, you could sandbox `bash`
  * via `tool_call` input mutation without replacing the tool.
  *
- * Config files (merged, project takes precedence):
+ * Config files are merged in this order:
+ * - built-in defaults
+ * - runtime config (adds `$TMPDIR` to `filesystem.allowWrite`)
  * - ~/.pi/agent/sandbox.json (global)
  * - <cwd>/.pi/sandbox.json (project-local)
+ *
+ * Objects are deep-merged. Arrays are concatenated and deduplicated, so
+ * project-local config extends global/default lists rather than replacing them.
  *
  * Example .pi/sandbox.json:
  * ```json
@@ -23,7 +28,7 @@
  *   },
  *   "filesystem": {
  *     "denyRead": ["~/.ssh", "~/.aws"],
- *     "allowWrite": [".", "/tmp"],
+ *     "allowWrite": [".", "$TMPDIR"],
  *     "denyWrite": [".env"]
  *   }
  * }
@@ -45,6 +50,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Type } from "@sinclair/typebox";
+import deepmerge from "deepmerge";
 import {
   SandboxManager,
   type SandboxRuntimeConfig,
@@ -85,19 +91,14 @@ const DEFAULT_CONFIG: SandboxConfig = {
   },
 };
 
-function getDefaultConfig(): SandboxConfig {
-  const tmpDir = process.env.TMPDIR || "/tmp";
-
-  return {
-    ...DEFAULT_CONFIG,
-    filesystem: {
-      ...DEFAULT_CONFIG.filesystem,
-      allowWrite: [...(DEFAULT_CONFIG.filesystem?.allowWrite ?? []), tmpDir],
-    },
-  };
-}
-
 function loadConfig(cwd: string): SandboxConfig {
+  const tmpDir = process.env.TMPDIR || "/tmp";
+  const runtimeConfig = {
+    filesystem: {
+      allowWrite: [tmpDir],
+    },
+  } as Partial<SandboxConfig>;
+
   const projectConfigPath = join(cwd, ".pi", "sandbox.json");
   const globalConfigPath = join(getAgentDir(), "sandbox.json");
 
@@ -120,42 +121,21 @@ function loadConfig(cwd: string): SandboxConfig {
     }
   }
 
-  const defaultConfig = getDefaultConfig();
-  return deepMerge(deepMerge(defaultConfig, globalConfig), projectConfig);
+  return deepMerge(
+    deepMerge(deepMerge(DEFAULT_CONFIG, runtimeConfig), globalConfig),
+    projectConfig,
+  );
 }
 
 function deepMerge(
   base: SandboxConfig,
   overrides: Partial<SandboxConfig>,
 ): SandboxConfig {
-  const result: SandboxConfig = { ...base };
-
-  if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
-  if (overrides.network) {
-    result.network = { ...base.network, ...overrides.network };
-  }
-  if (overrides.filesystem) {
-    result.filesystem = { ...base.filesystem, ...overrides.filesystem };
-  }
-
-  const extOverrides = overrides as {
-    ignoreViolations?: Record<string, string[]>;
-    enableWeakerNestedSandbox?: boolean;
-  };
-  const extResult = result as {
-    ignoreViolations?: Record<string, string[]>;
-    enableWeakerNestedSandbox?: boolean;
-  };
-
-  if (extOverrides.ignoreViolations) {
-    extResult.ignoreViolations = extOverrides.ignoreViolations;
-  }
-  if (extOverrides.enableWeakerNestedSandbox !== undefined) {
-    extResult.enableWeakerNestedSandbox =
-      extOverrides.enableWeakerNestedSandbox;
-  }
-
-  return result;
+  return deepmerge(base, overrides, {
+    arrayMerge: (destinationArray, sourceArray) => [
+      ...new Set([...destinationArray, ...sourceArray]),
+    ],
+  });
 }
 
 function createSandboxedBashOps(): BashOperations {
