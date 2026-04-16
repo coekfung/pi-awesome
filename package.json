@@ -14,7 +14,8 @@
   "pi": {
     "extensions": [
       "./extensions/ttft.ts",
-      "./extensions/sandbox.ts"
+      "./extensions/sandbox.ts",
+      "./extensions/notebook-edit.ts"
     ]
   },
   "dependencies": {
@@ -25,6 +26,9 @@
     "@mariozechner/pi-agent-core": "^0.65.0",
     "@mariozechner/pi-ai": "^0.65.0",
     "@mariozechner/pi-coding-agent": "^0.65.0",
-    "@sinclair/typebox": "^0.34.41"
+    "@sinclair/typebox": "^0.34.41",
+    "@types/node": "^22.0.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.8.0"
   }
 }
