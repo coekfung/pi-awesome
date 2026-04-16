@@ -15,7 +15,9 @@
     "extensions": [
       "./extensions/ttft.ts",
       "./extensions/sandbox.ts",
-      "./extensions/notebook-edit.ts"
+      "./extensions/notebook-edit.ts",
+      "./extensions/kimi/search.ts",
+      "./extensions/kimi/fetch.ts"
     ]
   },
   "dependencies": {
