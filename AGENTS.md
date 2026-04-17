@@ -39,6 +39,7 @@
 
 ## Git safety
 
+- Review recent git history before writing a commit message so you can follow the repository's existing commit message convention.
 - Never commit unless the user asks.
 - Stage only files changed in the current task.
 - Do not use broad staging or destructive commands such as `git add .`, `git add -A`, `git reset --hard`, `git checkout .`, `git stash`, or `git clean -fd`.
