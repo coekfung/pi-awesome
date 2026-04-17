@@ -23,9 +23,11 @@ Pi loads the extensions declared in `package.json > pi.extensions` automatically
 
 ```bash
 npm install
-npx tsc -p tsconfig.json --noEmit
+npm run check
+npm run check:fix
 ```
 
 - Source code lives in `extensions/`
 - The project uses TypeScript with ESM modules
-
+- `npm run check` runs TypeScript and formatting checks
+- `npm run check:fix` applies Prettier fixes, then reruns checks

@@ -1,4 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@mariozechner/pi-coding-agent";
 import { keyHint } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
@@ -9,6 +12,7 @@ import {
   type Result,
   getKimiModel,
   getKimiApiKey,
+  getToolResultText,
   hasKimiAuth,
 } from "./common.js";
 
@@ -189,8 +193,9 @@ export default function searchExtension(pi: ExtensionAPI) {
           );
         }
 
-        const text = result.content[0]?.text ?? "";
-        const count = text.split("---\n\n").filter((s) => s.trim()).length ||
+        const text = getToolResultText(result);
+        const count =
+          text.split("---\n\n").filter((s) => s.trim()).length ||
           text.split("\n").filter((s) => s.trim()).length;
 
         let display = theme.fg("success", `✓ ${count} result(s)`);

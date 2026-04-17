@@ -4,9 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "clean": "echo 'nothing to clean'",
-    "build": "echo 'nothing to build'",
-    "check": "echo 'nothing to check'"
+    "check": "tsc -p tsconfig.json --noEmit && prettier --check .",
+    "check:fix": "prettier --write . && npm run check"
   },
   "keywords": [
     "pi-package"

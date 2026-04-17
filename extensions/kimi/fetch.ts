@@ -1,4 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+} from "@mariozechner/pi-coding-agent";
 import { keyHint } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
@@ -10,6 +13,7 @@ import {
   extractMeaningfulText,
   getKimiModel,
   getKimiApiKey,
+  getToolResultText,
   hasKimiAuth,
 } from "./common.js";
 
@@ -153,7 +157,7 @@ export default function fetchExtension(pi: ExtensionAPI) {
           );
         }
 
-        const text = result.content[0]?.text ?? "";
+        const text = getToolResultText(result);
         const size = text.length
           ? `${(text.length / 1024).toFixed(1)}KB`
           : "0KB";

@@ -84,3 +84,18 @@ export function toToolResponse(result: Result) {
     },
   };
 }
+
+export function getToolResultText(
+  result: { content: Array<{ type: string; text?: string }> } | undefined,
+): string {
+  if (!result) {
+    return "";
+  }
+  return result.content
+    .filter(
+      (item): item is { type: "text"; text: string } =>
+        item.type === "text" && typeof item.text === "string",
+    )
+    .map((item) => item.text)
+    .join("\n");
+}

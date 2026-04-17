@@ -31,9 +31,11 @@
 
 ## Validation
 
-- For code changes, run `npx tsc -p tsconfig.json --noEmit`.
-- Docs-only changes usually do not require TypeScript validation.
-- npm scripts are currently placeholders; do not rely on them as the main validation path.
+- For code changes, run `npm run check`.
+- `npm run check` runs `tsc -p tsconfig.json --noEmit` and `prettier --check .`.
+- `npm run check:fix` applies `prettier --write .`, then reruns checks.
+- Docs-only changes usually do not require full validation.
+- There are no `build` or `clean` npm scripts.
 
 ## Git safety
 
@@ -41,4 +43,3 @@
 - Stage only files changed in the current task.
 - Do not use broad staging or destructive commands such as `git add .`, `git add -A`, `git reset --hard`, `git checkout .`, `git stash`, or `git clean -fd`.
 - If unrelated changes are present, leave them untouched.
-

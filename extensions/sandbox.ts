@@ -227,16 +227,19 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Composite([
       baseBashDef.parameters,
       Type.Object({
-        dangerouslyDisableSandbox: Type.Optional(Type.Boolean({
-          description: "Bypass sandbox restrictions (requires user confirmation)",
-        })),
+        dangerouslyDisableSandbox: Type.Optional(
+          Type.Boolean({
+            description:
+              "Bypass sandbox restrictions (requires user confirmation)",
+          }),
+        ),
       }),
     ]),
     promptGuidelines: [
       "Bash commands sandboxed by default; bypassing will prompt user for confirmation",
       "Only use \`dangerouslyDisableSandbox: true\` if user asks or sandbox restriction evidence appears",
-      "Sandbox restriction evidence: \"Operation not permitted\", access denied, git agent failures, network errors, socket errors",
-      "Use \`$TMPDIR\` for temp files, never \`/tmp\`"
+      'Sandbox restriction evidence: "Operation not permitted", access denied, git agent failures, network errors, socket errors',
+      "Use \`$TMPDIR\` for temp files, never \`/tmp\`",
     ],
 
     async execute(id, params, signal, onUpdate, ctx) {
@@ -245,7 +248,12 @@ export default function (pi: ExtensionAPI) {
         if (!ctx.hasUI) {
           // In non-interactive mode, block by default
           return {
-            content: [{ type: "text", text: "Dangerous command blocked (no UI for confirmation)" }],
+            content: [
+              {
+                type: "text",
+                text: "Dangerous command blocked (no UI for confirmation)",
+              },
+            ],
             isError: true,
             details: null,
           };
@@ -253,7 +261,7 @@ export default function (pi: ExtensionAPI) {
 
         const choice = await ctx.ui.select(
           `⚠️ Dangerous command (sandbox bypass):\n\n  ${params.command}\n\nAllow?`,
-          ["Yes", "No"]
+          ["Yes", "No"],
         );
 
         if (choice !== "Yes") {
