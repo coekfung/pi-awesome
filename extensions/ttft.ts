@@ -32,7 +32,7 @@ export default function (pi: ExtensionAPI) {
 	const formatStatus = (ttftMs?: number, tps?: number) => {
 		const ttftText = ttftMs === undefined ? "?ms" : `${ttftMs}ms`;
 		const tpsText = tps === undefined ? "≈?t/s" : `≈${tps.toFixed(1)}t/s`;
-		return `${STATUS_PREFIX} Perf: ${ttftText}; ${tpsText}`;
+		return `${STATUS_PREFIX} Perf: ${ttftText}, ${tpsText}`;
 	};
 
 	const updateStatus = (ctx: ExtensionContext) => {
