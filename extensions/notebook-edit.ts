@@ -14,8 +14,10 @@
  * - Replace beyond the last cell auto-downgrades to insert.
  * - Editing a code cell clears its execution_count and outputs.
  * - New cells get a random id when nbformat >= 4.5.
- * - The tool requires the notebook to have been read by the built-in `read`
- *   tool first, and rejects the edit if the file changed on disk since then.
+ * - Supports @-prefixed notebook paths like pi's built-in tools.
+ * - File mutations are serialized with `withFileMutationQueue()`.
+ * - Prompt guidance encourages reading notebooks first to inspect cells and ids,
+ *   but the tool does not hard-enforce a prior read.
  */
 
 import { randomUUID } from "node:crypto";
@@ -23,11 +25,12 @@ import {
   readFile as fsReadFile,
   writeFile as fsWriteFile,
 } from "node:fs/promises";
+import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 import { Type } from "@sinclair/typebox";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
+import {
+  withFileMutationQueue,
+  type ExtensionAPI,
 } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 
@@ -89,8 +92,16 @@ const notebookEditSchema = Type.Object(
   { additionalProperties: false },
 );
 
+function normalizeNotebookPath(p: string): string {
+  if (p.startsWith("@")) p = p.slice(1);
+  if (p === "~") return homedir();
+  if (p.startsWith("~/")) return homedir() + p.slice(1);
+  return p;
+}
+
 function resolvePath(cwd: string, p: string): string {
-  return isAbsolute(p) ? p : resolve(cwd, p);
+  const normalized = normalizeNotebookPath(p);
+  return isAbsolute(normalized) ? normalized : resolve(cwd, normalized);
 }
 
 function parseCellId(cellId: string): number | undefined {
@@ -108,63 +119,6 @@ function detectLineEnding(content: string): "\n" | "\r\n" {
 
 function generateCellId(): string {
   return randomUUID().replace(/-/g, "").substring(0, 13);
-}
-
-class ReadGuard {
-  private cache = new Map<string, string>();
-  private pendingReads = new Set<string>();
-
-  attach(pi: ExtensionAPI) {
-    pi.on("tool_call", async (event, ctx: ExtensionContext) => {
-      if (event.toolName === "read") {
-        const input = event.input as { path?: string };
-        if (input.path?.endsWith(".ipynb")) {
-          const resolved = resolvePath(ctx.cwd, input.path);
-          this.pendingReads.add(resolved);
-          this.cache.set(resolved, "");
-        }
-      }
-    });
-
-    pi.on("tool_result", async (event, ctx: ExtensionContext) => {
-      if (event.toolName !== "read") return;
-      if (event.isError) return;
-
-      const path = (event.input as { path?: string }).path;
-      if (!path?.endsWith(".ipynb")) return;
-
-      const resolved = resolvePath(ctx.cwd, path);
-      const textParts = event.content
-        .filter((c) => c.type === "text")
-        .map((c) => (c as { text: string }).text);
-      this.pendingReads.delete(resolved);
-      this.cache.set(resolved, textParts.join(""));
-    });
-  }
-
-  check(
-    path: string,
-  ): { ok: true; cached: string } | { ok: false; reason: string } {
-    const cached = this.cache.get(path);
-    if (cached === undefined) {
-      return {
-        ok: false,
-        reason: "Notebook has not been read yet. Read it first before editing.",
-      };
-    }
-    if (cached === "" || this.pendingReads.has(path)) {
-      return {
-        ok: false,
-        reason:
-          "Notebook read is pending. Wait for the read tool to complete before editing.",
-      };
-    }
-    return { ok: true, cached };
-  }
-
-  update(path: string, content: string) {
-    this.cache.set(path, content);
-  }
 }
 
 function mutateNotebook(
@@ -284,22 +238,18 @@ function mutateNotebook(
 }
 
 export default function (pi: ExtensionAPI) {
-  const guard = new ReadGuard();
-  guard.attach(pi);
-
   pi.registerTool({
     name: "notebook_edit",
     label: "Notebook Edit",
     description:
       "Replace, insert, or delete a cell in a Jupyter notebook (.ipynb). " +
-      "The notebook must be read with the read tool first. " +
       "Use cell_id to identify the target cell (exact id or cell-N index).",
-    promptSnippet: "Edit Jupyter notebook cells",
+    promptSnippet:
+      "Edit Jupyter notebook cells instead of editing raw .ipynb JSON manually",
     promptGuidelines: [
-      "Always read the notebook with the read tool before calling notebook_edit.",
-      "Use the cell's id attribute from the read output as cell_id when possible.",
-      "If no id is present, use cell-N where N is the 0-based index.",
-      "For insert, the new cell is placed after the cell specified by cell_id.",
+      "Before calling notebook_edit, use the read tool when you need to inspect notebook cells, source, or ids.",
+      "When calling notebook_edit, use the cell's id attribute from the read output as cell_id when possible; otherwise use cell-N where N is the 0-based index.",
+      "In notebook_edit insert mode, the new cell is placed after the cell specified by cell_id.",
     ],
     parameters: notebookEditSchema,
 
@@ -310,77 +260,67 @@ export default function (pi: ExtensionAPI) {
         throw new Error("File must be a Jupyter notebook (.ipynb).");
       }
 
-      const guardResult = guard.check(fullPath);
-      if (!guardResult.ok) {
-        throw new Error(guardResult.reason);
-      }
+      return withFileMutationQueue(fullPath, async () => {
+        const raw = await fsReadFile(fullPath, "utf-8");
 
-      const raw = await fsReadFile(fullPath, "utf-8");
-      if (raw !== guardResult.cached) {
-        throw new Error(
-          "Notebook was modified since it was last read. Read it again before editing.",
-        );
-      }
+        let notebook: NotebookContent;
+        try {
+          notebook = JSON.parse(raw) as NotebookContent;
+        } catch {
+          throw new Error("Notebook is not valid JSON.");
+        }
 
-      let notebook: NotebookContent;
-      try {
-        notebook = JSON.parse(raw) as NotebookContent;
-      } catch {
-        throw new Error("Notebook is not valid JSON.");
-      }
+        if (!Array.isArray(notebook.cells)) {
+          throw new Error("Invalid notebook structure: missing cells array.");
+        }
 
-      if (!Array.isArray(notebook.cells)) {
-        throw new Error("Invalid notebook structure: missing cells array.");
-      }
+        const {
+          cellId,
+          editMode,
+          notebook: mutated,
+        } = mutateNotebook(notebook, {
+          cell_id: params.cell_id,
+          new_source: params.new_source,
+          cell_type: params.cell_type,
+          edit_mode: params.edit_mode,
+        });
 
-      const {
-        cellId,
-        editMode,
-        notebook: mutated,
-      } = mutateNotebook(notebook, {
-        cell_id: params.cell_id,
-        new_source: params.new_source,
-        cell_type: params.cell_type,
-        edit_mode: params.edit_mode,
+        const lineEnding = detectLineEnding(raw);
+        const updated =
+          JSON.stringify(mutated, null, 1).replace(/\n/g, lineEnding) +
+          lineEnding;
+        await fsWriteFile(fullPath, updated, "utf-8");
+
+        const language = mutated.metadata.language_info?.name ?? "python";
+        const displayPath = basename(fullPath);
+
+        let text: string;
+        switch (editMode) {
+          case "insert":
+            text = `Inserted ${params.cell_type} cell ${cellId ? `"${cellId}" ` : ""}into ${displayPath}`;
+            break;
+          case "delete":
+            text = `Deleted cell ${params.cell_id ? `"${params.cell_id}" ` : ""}from ${displayPath}`;
+            break;
+          default:
+            text = `Updated cell ${cellId ? `"${cellId}" ` : ""}in ${displayPath}`;
+        }
+
+        return {
+          content: [{ type: "text", text }],
+          details: {
+            path: fullPath,
+            cell_id: cellId,
+            edit_mode: editMode,
+            language,
+          },
+        };
       });
-
-      const lineEnding = detectLineEnding(raw);
-      const updated =
-        JSON.stringify(mutated, null, 1).replace(/\n/g, lineEnding) +
-        lineEnding;
-      await fsWriteFile(fullPath, updated, "utf-8");
-
-      guard.update(fullPath, updated);
-
-      const language = mutated.metadata.language_info?.name ?? "python";
-      const displayPath = basename(fullPath);
-
-      let text: string;
-      switch (editMode) {
-        case "insert":
-          text = `Inserted ${params.cell_type} cell ${cellId ? `"${cellId}" ` : ""}into ${displayPath}`;
-          break;
-        case "delete":
-          text = `Deleted cell ${params.cell_id ? `"${params.cell_id}" ` : ""}from ${displayPath}`;
-          break;
-        default:
-          text = `Updated cell ${cellId ? `"${cellId}" ` : ""}in ${displayPath}`;
-      }
-
-      return {
-        content: [{ type: "text", text }],
-        details: {
-          path: fullPath,
-          cell_id: cellId,
-          edit_mode: editMode,
-          language,
-        },
-      };
     },
 
     renderCall(args, theme) {
       const pathDisplay = args.notebook_path
-        ? basename(args.notebook_path)
+        ? basename(normalizeNotebookPath(args.notebook_path))
         : "?";
       const mode = args.edit_mode ?? "replace";
       const target = args.cell_id ?? (mode === "insert" ? "start" : "?");
