@@ -1,3 +1,23 @@
+/**
+ * Compact performance footer for pi.
+ *
+ * Display format:
+ *   🚀 Perf: 820ms; ≈31.2t/s
+ *
+ * Convention used by this lightweight extension:
+ * - `ms` is TTFT to the first non-empty streamed assistant delta.
+ * - The first streamed delta may be either `text_delta` or `thinking_delta`.
+ * - `≈t/s` is an approximate provider-based throughput, not strict Visible TPS.
+ *
+ * Formulas:
+ * - TTFT = t_first_streamed_delta - t_request_start
+ * - Approx_TPS = provider_usage.output / (t_message_end - t_first_streamed_delta)
+ *
+ * Notes:
+ * - `provider_usage.output` may include provider-specific reasoning/output accounting.
+ * - If no qualifying streamed delta or output usage is available, the footer shows `?`.
+ */
+import { performance } from "node:perf_hooks";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
@@ -10,9 +30,9 @@ export default function (pi: ExtensionAPI) {
 	const STATUS_PREFIX = "🚀";
 
 	const formatStatus = (ttftMs?: number, tps?: number) => {
-		const ttftText = ttftMs === undefined ? "TTFT: unknown" : `TTFT: ${ttftMs}ms`;
-		const tpsText = tps === undefined ? "TPS: unknown" : `TPS: ${tps.toFixed(1)} tok/s`;
-		return `${STATUS_PREFIX} ${ttftText} ${tpsText}`;
+		const ttftText = ttftMs === undefined ? "?ms" : `${ttftMs}ms`;
+		const tpsText = tps === undefined ? "≈?t/s" : `≈${tps.toFixed(1)}t/s`;
+		return `${STATUS_PREFIX} Perf: ${ttftText}; ${tpsText}`;
 	};
 
 	const updateStatus = (ctx: ExtensionContext) => {
@@ -20,8 +40,10 @@ export default function (pi: ExtensionAPI) {
 	};
 
 	pi.on("before_provider_request", async (_event, ctx) => {
-		requestStartAt = Date.now();
+		requestStartAt = performance.now();
 		firstTokenAt = undefined;
+		lastTtftMs = undefined;
+		lastTps = undefined;
 		updateStatus(ctx);
 		ctx.ui.setWorkingMessage("Sending request to model...");
 	});
@@ -30,9 +52,13 @@ export default function (pi: ExtensionAPI) {
 		if (event.message.role !== "assistant") return;
 		if (firstTokenAt !== undefined) return;
 
-		const now = Date.now();
+		const streamEvent = event.assistantMessageEvent;
+		if (streamEvent.type !== "text_delta" && streamEvent.type !== "thinking_delta") return;
+		if (!streamEvent.delta.trim()) return;
+
+		const now = performance.now();
 		firstTokenAt = now;
-		lastTtftMs = requestStartAt === undefined ? undefined : now - requestStartAt;
+		lastTtftMs = requestStartAt === undefined ? undefined : Math.round(now - requestStartAt);
 		updateStatus(ctx);
 		ctx.ui.setWorkingMessage("Model is responding...");
 	});
@@ -41,7 +67,7 @@ export default function (pi: ExtensionAPI) {
 		if (event.message.role !== "assistant") return;
 		if (firstTokenAt === undefined) return;
 
-		const generationMs = Date.now() - firstTokenAt;
+		const generationMs = performance.now() - firstTokenAt;
 		const outputTokens = event.message.usage?.output;
 		lastTps =
 			typeof outputTokens === "number" && outputTokens > 0 && generationMs > 0
