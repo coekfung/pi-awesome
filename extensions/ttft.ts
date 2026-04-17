@@ -45,7 +45,7 @@ export default function (pi: ExtensionAPI) {
 		lastTtftMs = undefined;
 		lastTps = undefined;
 		updateStatus(ctx);
-		ctx.ui.setWorkingMessage("Sending request to model...");
+		ctx.ui.setWorkingMessage("Warming up the neurons...");
 	});
 
 	pi.on("message_update", async (event, ctx) => {
@@ -60,7 +60,7 @@ export default function (pi: ExtensionAPI) {
 		firstTokenAt = now;
 		lastTtftMs = requestStartAt === undefined ? undefined : Math.round(now - requestStartAt);
 		updateStatus(ctx);
-		ctx.ui.setWorkingMessage("Model is responding...");
+		ctx.ui.setWorkingMessage("Thoughts on the move...");
 	});
 
 	pi.on("message_end", async (event, ctx) => {
