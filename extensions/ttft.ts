@@ -2,7 +2,7 @@
  * Compact performance footer for pi.
  *
  * Display format:
- *   🚀 Perf: 820ms; ≈31.2t/s
+ *   🚀 Perf: 820ms, ≈31.2t/s
  *
  * Convention used by this lightweight extension:
  * - `ms` is TTFT to the first non-empty streamed assistant delta.
@@ -14,6 +14,8 @@
  * - Approx_TPS = provider_usage.output / (t_message_end - t_first_streamed_delta)
  *
  * Notes:
+ * - Metrics are scoped to the latest provider request, not the full user prompt lifecycle.
+ * - If the agent performs tool calls and sends another model request, the footer resets for that newer request.
  * - `provider_usage.output` may include provider-specific reasoning/output accounting.
  * - If no qualifying streamed delta or output usage is available, the footer shows `?`.
  */
