@@ -13,16 +13,12 @@
   "pi": {
     "extensions": [
       "./extensions/ttft.ts",
-      "./extensions/sandbox.ts",
       "./extensions/notebook-edit.ts",
       "./extensions/kimi/search.ts",
       "./extensions/kimi/fetch.ts"
     ]
   },
-  "dependencies": {
-    "@anthropic-ai/sandbox-runtime": "0.0.44",
-    "deepmerge": "^4.3.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@mariozechner/pi-agent-core": "^0.65.0",
     "@mariozechner/pi-ai": "^0.65.0",
