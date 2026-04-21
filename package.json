@@ -13,6 +13,7 @@
   "pi": {
     "extensions": [
       "./extensions/ttft.ts",
+      "./extensions/nono.ts",
       "./extensions/notebook-edit.ts",
       "./extensions/kimi/search.ts",
       "./extensions/kimi/fetch.ts"
