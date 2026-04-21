@@ -35,7 +35,7 @@ export default function (pi: ExtensionAPI) {
   let tpsIsStale = false;
 
   const STATUS_KEY = "ttft";
-  const STATUS_PREFIX = "🚀";
+  const STATUS_PREFIX = "🚀 perf:";
 
   const formatTtft = (ttftMs?: number) =>
     ttftMs === undefined ? "?ms" : `${ttftMs}ms`;
@@ -43,7 +43,7 @@ export default function (pi: ExtensionAPI) {
     tps === undefined ? "≈?t/s" : `≈${tps.toFixed(1)}t/s`;
 
   const updateStatus = (ctx: ExtensionContext) => {
-    const prefix = ctx.ui.theme.fg("accent", `${STATUS_PREFIX} Perf: `);
+    const prefix = ctx.ui.theme.fg("accent", `${STATUS_PREFIX} `);
     const separator = ctx.ui.theme.fg("accent", ", ");
     const ttftText = formatTtft(lastTtftMs);
     const tpsText = formatTps(lastTps);

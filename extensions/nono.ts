@@ -64,14 +64,14 @@ export default function (pi: ExtensionAPI) {
 
   const formatStatus = (status: NonoStatus, ctx: ExtensionContext) => {
     const theme = ctx.ui.theme;
+    const prefix = theme.fg("accent", "🛡️ nono: ");
     if (status.active) {
-      const text = `🛡️ nono${status.version ? ` ${status.version}` : ""}`;
-      return theme.fg("accent", text);
+      return `${prefix}${theme.fg("accent", `v${status.version}`)}`;
     }
     if (status.installed) {
-      return "🛡️ nono inactive";
+      return `${prefix}inactive`;
     }
-    return theme.fg("dim", "🛡️ nono uninstalled");
+    return `${prefix}${theme.fg("dim", "uninstalled")}`;
   };
 
   pi.on("session_start", async (_event, ctx) => {
