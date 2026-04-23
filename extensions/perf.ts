@@ -98,6 +98,12 @@ export default function (pi: ExtensionAPI) {
     tpsIsStale = false;
     updateStatus(ctx);
     ctx.ui.setWorkingMessage();
+
+    pi.appendEntry("perf-metrics", {
+      ttft: lastTtftMs,
+      tps: lastTps,
+      duration: generationMs,
+    });
   });
 
   pi.on("session_start", async (_event, ctx) => {
