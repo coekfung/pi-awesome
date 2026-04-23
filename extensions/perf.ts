@@ -33,6 +33,9 @@ export default function (pi: ExtensionAPI) {
   let lastTps: number | undefined;
   let ttftIsStale = false;
   let tpsIsStale = false;
+  let pendingMetrics:
+    | { ttft?: number; tps?: number; duration: number }
+    | undefined;
 
   const STATUS_KEY = "ttft";
   const STATUS_PREFIX = "🚀 perf:";
@@ -57,6 +60,7 @@ export default function (pi: ExtensionAPI) {
     firstTokenAt = undefined;
     ttftIsStale = lastTtftMs !== undefined;
     tpsIsStale = lastTps !== undefined;
+    pendingMetrics = undefined;
     updateStatus(ctx);
     ctx.ui.setWorkingMessage("Warming up the neurons...");
   });
@@ -99,11 +103,20 @@ export default function (pi: ExtensionAPI) {
     updateStatus(ctx);
     ctx.ui.setWorkingMessage();
 
-    pi.appendEntry("perf-metrics", {
+    // Defer appendEntry to turn_end so the assistant message is already
+    // persisted in the session tree (message_end fires before persistence).
+    pendingMetrics = {
       ttft: lastTtftMs,
       tps: lastTps,
       duration: generationMs,
-    });
+    };
+  });
+
+  pi.on("turn_end", async (_event, _ctx) => {
+    if (pendingMetrics) {
+      pi.appendEntry("perf-metrics", pendingMetrics);
+      pendingMetrics = undefined;
+    }
   });
 
   pi.on("session_start", async (_event, ctx) => {
