@@ -6,7 +6,7 @@
  *
  * Convention used by this lightweight extension:
  * - `ms` is TTFT to the first non-empty streamed assistant delta.
- * - The first streamed delta may be either `text_delta` or `thinking_delta`.
+ * - The first streamed delta may be `text_delta`, `thinking_delta`, or `tool_calls_delta`.
  * - `≈t/s` is an approximate provider-based throughput, not strict Visible TPS.
  *
  * Formulas:
@@ -68,7 +68,8 @@ export default function (pi: ExtensionAPI) {
     const streamEvent = event.assistantMessageEvent;
     if (
       streamEvent.type !== "text_delta" &&
-      streamEvent.type !== "thinking_delta"
+      streamEvent.type !== "thinking_delta" &&
+      streamEvent.type !== "toolcall_delta"
     )
       return;
     if (!streamEvent.delta.trim()) return;
