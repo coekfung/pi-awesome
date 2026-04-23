@@ -12,7 +12,7 @@
   ],
   "pi": {
     "extensions": [
-      "./extensions/ttft.ts",
+      "./extensions/perf.ts",
       "./extensions/nono.ts",
       "./extensions/notebook-edit.ts",
       "./extensions/kimi/search.ts",
