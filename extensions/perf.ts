@@ -35,9 +35,7 @@ export default function (pi: ExtensionAPI) {
   let lastTps: number | undefined;
   let ttftIsStale = false;
   let tpsIsStale = false;
-  let pendingMetrics:
-    | { ttft?: number; tps?: number; duration: number }
-    | undefined;
+  let pendingMetrics: { ttft?: number; duration: number } | undefined;
 
   const STATUS_KEY = "ttft";
   const STATUS_PREFIX = "🚀 perf:";
@@ -109,7 +107,6 @@ export default function (pi: ExtensionAPI) {
     // persisted in the session tree (message_end fires before persistence).
     pendingMetrics = {
       ttft: lastTtftMs,
-      tps: lastTps,
       duration: generationMs,
     };
   });
