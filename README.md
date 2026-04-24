@@ -4,7 +4,7 @@ A compact collection of practical extensions for [Pi](https://github.com/marioze
 
 ## What’s included
 
-- `extensions/perf.ts` — shows TTFT and approximate output throughput in the UI status line; keeps the last reading visible while refreshing
+- `extensions/perf.ts` — shows TTFT and approximate output throughput in the UI status line; adds `/perf` for per-turn session metrics with provider/model info
 - `extensions/nono.ts` — detects whether the Pi process is running inside a [nono](https://github.com/always-further/nono) sandbox via environment variables
 - `extensions/notebook-edit.ts` — provides a `notebook_edit` tool for Jupyter cell edits with pi-style guidance and serialized file writes
 - `extensions/kimi/` — Kimi-powered web tools and shared helpers (`search.ts`, `fetch.ts`, `common.ts`)
