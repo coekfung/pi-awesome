@@ -15,7 +15,6 @@
       "./extensions/perf.ts",
       "./extensions/nono.ts",
       "./extensions/notebook-edit.ts",
-      "./extensions/fix-deepseek-reasoning.ts",
       "./extensions/kimi/search.ts",
       "./extensions/kimi/fetch.ts"
     ]
