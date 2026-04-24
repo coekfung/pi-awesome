@@ -15,8 +15,6 @@
 - `extensions/perf.ts` — UI performance footer
 - `extensions/sandbox.ts` — sandboxed `bash` override
 - `extensions/notebook-edit.ts` — Jupyter notebook cell editing tool
-- `extensions/kimi/common.ts` — shared Kimi helpers
-- `extensions/kimi/search.ts` / `extensions/kimi/fetch.ts` — Kimi web tools
 
 ## Code rules
 

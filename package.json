@@ -14,9 +14,7 @@
     "extensions": [
       "./extensions/perf.ts",
       "./extensions/nono.ts",
-      "./extensions/notebook-edit.ts",
-      "./extensions/kimi/search.ts",
-      "./extensions/kimi/fetch.ts"
+      "./extensions/notebook-edit.ts"
     ]
   },
   "dependencies": {},
