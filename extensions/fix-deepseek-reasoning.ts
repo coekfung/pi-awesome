@@ -7,10 +7,10 @@
  * causes a 400 error: "The `reasoning_content` in the thinking mode must be
  * passed back to the API."
  *
- * This extension intercepts `before_provider_request`, detects reasoning
- * models, and fills in `reasoning_content: ""` on assistant messages that
- * are missing it.  Non-reasoning models and messages that already carry the
- * field are left untouched.
+ * This extension intercepts `before_provider_request`, detects
+ * deepseek-v4 reasoning models, and fills in `reasoning_content: ""` on
+ * assistant messages that are missing it.  Other models and messages that
+ * already carry the field are left untouched.
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -28,8 +28,9 @@ interface ProviderPayload {
 
 export default function (pi: ExtensionAPI) {
   pi.on("before_provider_request", (event, ctx) => {
-    // Only patch reasoning models.
-    if (!ctx.model?.reasoning) return;
+    // Only patch DeepSeek v4 reasoning models.
+    const modelId = ctx.model?.id;
+    if (!ctx.model?.reasoning || !modelId?.includes("deepseek-v4")) return;
 
     const payload = event.payload as ProviderPayload | undefined;
     if (!payload) return;
