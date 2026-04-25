@@ -13,12 +13,13 @@
 ## Important files
 
 - `extensions/perf.ts` — UI performance footer
-- `extensions/sandbox.ts` — sandboxed `bash` override
+- `extensions/nono.ts` — nono sandbox detection
 - `extensions/notebook-edit.ts` — Jupyter notebook cell editing tool
+- `extensions/mcp.ts` — MCP client with tool listing, calling, and status UI
 
 ## Code rules
 
-- Keep edits minimal and localized.
+- Keep edits minimal and localized. This includes comments and abstraction layers.
 - Preserve each touched file’s existing formatting style.
 - Maintain strict TypeScript compatibility and avoid unnecessary dependencies.
 - Avoid `any` unless there is no reasonable typed alternative.
@@ -26,6 +27,7 @@
 - Do not rename public tool names or change tool parameters without clear justification.
 - Ask before removing functionality or behavior that appears intentional.
 - If user-facing behavior changes, update `README.md` in the same task.
+- Don't write a helper that doesn't make its callers simpler than the code it wraps.
 
 ## Validation
 

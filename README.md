@@ -1,12 +1,13 @@
 # pi-awesome
 
-A compact collection of practical extensions for [Pi](https://github.com/mariozechner/pi-coding-agent), focused on performance visibility, safer shell execution, notebook editing, and web retrieval via MCP.
+A compact collection of practical extensions for [Pi](https://github.com/mariozechner/pi-coding-agent), focused on performance visibility, safer shell execution, notebook editing, and MCP integration.
 
 ## What’s included
 
 - `extensions/perf.ts` — shows TTFT and approximate output throughput in the UI status line; adds `/perf` for per-turn session metrics with provider/model info
 - `extensions/nono.ts` — detects whether the Pi process is running inside a [nono](https://github.com/always-further/nono) sandbox via environment variables
 - `extensions/notebook-edit.ts` — provides a `notebook_edit` tool for Jupyter cell edits with pi-style guidance and serialized file writes
+- `extensions/mcp.ts` — provides MCP tool listing/calling and adds configured MCP server names to the system prompt
 
 ## Installation
 

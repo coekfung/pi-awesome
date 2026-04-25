@@ -14,10 +14,13 @@
     "extensions": [
       "./extensions/perf.ts",
       "./extensions/nono.ts",
-      "./extensions/notebook-edit.ts"
+      "./extensions/notebook-edit.ts",
+      "./extensions/mcp.ts"
     ]
   },
-  "dependencies": {},
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
   "devDependencies": {
     "@mariozechner/pi-agent-core": "^0.68.0",
     "@mariozechner/pi-ai": "^0.68.0",
