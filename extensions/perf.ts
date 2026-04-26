@@ -127,7 +127,10 @@ export default function (pi: ExtensionAPI) {
     ttft?: number;
     duration: number;
     tps?: number;
-    totalOutput?: number;
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
     provider?: string;
     model?: string;
     time: string;
@@ -142,7 +145,7 @@ export default function (pi: ExtensionAPI) {
       parentId: string | null;
       timestamp: string;
       customType?: string;
-      data?: { ttft?: number; tps?: number; duration: number };
+      data?: { ttft?: number; duration: number };
       message?: {
         role: string;
         provider?: string;
@@ -150,36 +153,22 @@ export default function (pi: ExtensionAPI) {
         usage?: { output?: number };
       };
     }[];
-    const idMap = new Map(all.map((e: { id: string }) => [e.id, e]));
+    const idMap = new Map(all.map((e) => [e.id, e]));
 
     const perfEntries = all.filter(
-      (e: { type: string; customType?: string }) =>
-        e.type === "custom" && e.customType === "perf-metrics",
+      (e) => e.type === "custom" && e.customType === "perf-metrics",
     ) as {
       parentId: string | null;
       timestamp: string;
-      data?: { ttft?: number; tps?: number; duration: number };
+      data?: { ttft?: number; duration: number };
     }[];
 
     return perfEntries.map((perfEntry, i) => {
       // Walk parent chain to find the nearest assistant message
       let currentId: string | null = perfEntry.parentId;
-      let assistantMsg:
-        | { provider?: string; model?: string; usage?: { output?: number } }
-        | undefined;
+      let assistantMsg: (typeof all)[number]["message"];
       while (currentId) {
-        const entry = idMap.get(currentId) as
-          | {
-              type: string;
-              parentId?: string | null;
-              message?: {
-                role: string;
-                provider?: string;
-                model?: string;
-                usage?: { output?: number };
-              };
-            }
-          | undefined;
+        const entry = idMap.get(currentId);
         if (!entry) break;
         if (entry.type === "message" && entry.message?.role === "assistant") {
           assistantMsg = entry.message;
@@ -188,11 +177,22 @@ export default function (pi: ExtensionAPI) {
         currentId = entry.parentId ?? null;
       }
 
-      const totalOutput = assistantMsg?.usage?.output;
+      const usage = assistantMsg?.usage as
+        | {
+            output?: number;
+            input?: number;
+            cacheRead?: number;
+            cacheWrite?: number;
+          }
+        | undefined;
+      const input = usage?.input;
+      const output = usage?.output;
+      const cacheRead = usage?.cacheRead;
+      const cacheWrite = usage?.cacheWrite;
       const duration = perfEntry.data?.duration ?? 0;
       const tps =
-        typeof totalOutput === "number" && duration > 0
-          ? totalOutput / (duration / 1000)
+        typeof output === "number" && duration > 0
+          ? output / (duration / 1000)
           : undefined;
 
       return {
@@ -200,7 +200,10 @@ export default function (pi: ExtensionAPI) {
         ttft: perfEntry.data?.ttft,
         duration,
         tps,
-        totalOutput,
+        input,
+        output,
+        cacheRead,
+        cacheWrite,
         provider: assistantMsg?.provider,
         model: assistantMsg?.model,
         time: (() => {
@@ -231,8 +234,22 @@ export default function (pi: ExtensionAPI) {
         const W_TTFT = 8;
         const W_TPS = 10;
         const W_DUR = 7;
+        const W_INPUT = 7;
+        const W_OUTPUT = 7;
+        const W_CACHE_R = 7;
+        const W_CACHE_W = 7;
+
+        let showTokens = false;
 
         const padLeft = (s: string, w: number) => s.padStart(w);
+
+        const fmtTok = (n?: number): string => {
+          if (n === undefined) return "-".padStart(W_INPUT);
+          if (n >= 1_000_000)
+            return `${(n / 1_000_000).toFixed(1)}M`.padStart(W_INPUT);
+          if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`.padStart(W_INPUT);
+          return String(n).padStart(W_INPUT);
+        };
 
         const header = () => {
           const num = "#".padEnd(W_NUM);
@@ -240,6 +257,13 @@ export default function (pi: ExtensionAPI) {
           const ttft = "TTFT".padEnd(W_TTFT);
           const tps = "TPS".padEnd(W_TPS);
           const dur = "Dur".padEnd(W_DUR);
+          if (showTokens) {
+            const inp = "Inp".padEnd(W_INPUT);
+            const out = "Out".padEnd(W_OUTPUT);
+            const cr = "CchR".padEnd(W_CACHE_R);
+            const cw = "CchW".padEnd(W_CACHE_W);
+            return `  ${num}  ${ttft}  ${tps}  ${dur}  ${inp}  ${out}  ${cr}  ${cw}  ${time}  Model`;
+          }
           return `  ${num}  ${ttft}  ${tps}  ${dur}  ${time}  Model`;
         };
 
@@ -268,7 +292,16 @@ export default function (pi: ExtensionAPI) {
           );
           const time = theme.fg("dim", e.time.padEnd(W_TIME));
           const prefix = selected ? theme.fg("accent", "› ") : "  ";
-          let line = `${prefix}${num}  ${ttft}  ${tps}  ${dur}  ${time}  ${model}`;
+          let line: string;
+          if (showTokens) {
+            const inp = theme.fg("dim", fmtTok(e.input));
+            const out = theme.fg("dim", fmtTok(e.output));
+            const cr = theme.fg("dim", fmtTok(e.cacheRead));
+            const cw = theme.fg("dim", fmtTok(e.cacheWrite));
+            line = `${prefix}${num}  ${ttft}  ${tps}  ${dur}  ${inp}  ${out}  ${cr}  ${cw}  ${time}  ${model}`;
+          } else {
+            line = `${prefix}${num}  ${ttft}  ${tps}  ${dur}  ${time}  ${model}`;
+          }
           if (selected) {
             line = theme.bg("selectedBg", line);
           }
@@ -292,7 +325,11 @@ export default function (pi: ExtensionAPI) {
             ),
           );
           container.addChild(
-            new Text(theme.fg("muted", "  ↑↓ scroll · esc close"), 1, 0),
+            new Text(
+              theme.fg("muted", "  ↑↓ scroll · tab tokens · esc close"),
+              1,
+              0,
+            ),
           );
           container.addChild(new DynamicBorder());
           container.addChild(new Text(theme.fg("dim", header()), 1, 0));
@@ -337,6 +374,10 @@ export default function (pi: ExtensionAPI) {
               cursor++;
               if (cursor >= offset + maxVisible)
                 offset = cursor - maxVisible + 1;
+              buildUI();
+              tui.requestRender();
+            } else if (matchesKey(data, Key.tab)) {
+              showTokens = !showTokens;
               buildUI();
               tui.requestRender();
             } else if (
