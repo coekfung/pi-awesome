@@ -12,10 +12,10 @@
   ],
   "pi": {
     "extensions": [
-      "./extensions/perf.ts",
-      "./extensions/nono.ts",
-      "./extensions/notebook-edit.ts",
-      "./extensions/mcp.ts"
+      "./perf/perf.ts",
+      "./nono/nono.ts",
+      "./notebook-edit/notebook-edit.ts",
+      "./mcp/mcp.ts"
     ]
   },
   "dependencies": {

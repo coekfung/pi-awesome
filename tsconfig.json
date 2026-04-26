@@ -10,5 +10,10 @@
     "noEmit": true,
     "lib": ["ES2022"]
   },
-  "include": ["extensions/**/*.ts"]
+  "include": [
+    "perf/**/*.ts",
+    "nono/**/*.ts",
+    "notebook-edit/**/*.ts",
+    "mcp/**/*.ts"
+  ]
 }

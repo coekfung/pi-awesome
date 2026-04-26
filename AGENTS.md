@@ -12,10 +12,10 @@
 
 ## Important files
 
-- `extensions/perf.ts` — UI performance footer
-- `extensions/nono.ts` — nono sandbox detection
-- `extensions/notebook-edit.ts` — Jupyter notebook cell editing tool
-- `extensions/mcp.ts` — MCP client with tool listing, calling, and status UI
+- `perf/perf.ts` — UI performance footer
+- `nono/nono.ts` — nono sandbox detection
+- `notebook-edit/notebook-edit.ts` — Jupyter notebook cell editing tool
+- `mcp/mcp.ts` — MCP client with tool listing, calling, and status UI
 
 ## Code rules
 
