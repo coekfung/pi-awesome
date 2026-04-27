@@ -218,7 +218,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("perf", {
     description: "Show per-turn performance metrics",
     handler: async (_args, ctx) => {
-      const entries = collectPerfEntries(ctx.sessionManager);
+      const entries = collectPerfEntries(ctx.sessionManager).reverse();
       if (entries.length === 0) {
         ctx.ui.notify("No perf metrics yet. Run some prompts first.", "info");
         return;
