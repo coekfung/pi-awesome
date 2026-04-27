@@ -336,9 +336,9 @@ export default function (pi: ExtensionAPI) {
           container.addChild(new Spacer(1));
 
           const visible = entries.slice(offset, offset + maxVisible);
-          for (const e of visible) {
+          for (let i = 0; i < visible.length; i++) {
             container.addChild(
-              new Text(renderRow(e, e.turn - 1 === cursor), 1, 0),
+              new Text(renderRow(visible[i], offset + i === cursor), 1, 0),
             );
           }
           for (let i = visible.length; i < maxVisible; i++) {
