@@ -84,6 +84,18 @@ export function loadConfig(cwd: string): McpConfig {
 
 let config: McpConfig = DEFAULT_CONFIG;
 const clients = new Map<string, Promise<Client>>();
+const lastUsed = new Map<string, number>();
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
+async function closeIdleClients(): Promise<void> {
+  const now = Date.now();
+  for (const [name] of [...clients]) {
+    const last = lastUsed.get(name) ?? 0;
+    if (now - last >= IDLE_TIMEOUT_MS) {
+      await forgetServer(name);
+    }
+  }
+}
 
 async function createClient(
   serverName: string,
@@ -108,8 +120,13 @@ async function createClient(
 }
 
 async function connectServer(serverName: string): Promise<Client> {
+  await closeIdleClients();
+
   const cached = clients.get(serverName);
-  if (cached) return cached;
+  if (cached) {
+    lastUsed.set(serverName, Date.now());
+    return cached;
+  }
 
   const entry = config.mcpServers[serverName];
   if (!entry) {
@@ -123,12 +140,14 @@ async function connectServer(serverName: string): Promise<Client> {
     throw error;
   });
   clients.set(serverName, promise);
+  lastUsed.set(serverName, Date.now());
   return promise;
 }
 
 async function forgetServer(serverName: string) {
   const promise = clients.get(serverName);
   clients.delete(serverName);
+  lastUsed.delete(serverName);
 
   const client = await promise?.catch(() => undefined);
   await client?.close().catch(() => undefined);
@@ -239,15 +258,23 @@ function formatStatus(theme?: Theme) {
 }
 
 export default function mcp(pi: ExtensionAPI) {
+  let idleTimer: ReturnType<typeof setInterval> | undefined;
+
   pi.on("session_start", async (_event, ctx) => {
     config = loadConfig(ctx.cwd);
     ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
+    idleTimer = setInterval(closeIdleClients, 60_000);
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
     ctx.ui.setStatus(STATUS_KEY, undefined);
+    if (idleTimer !== undefined) {
+      clearInterval(idleTimer);
+      idleTimer = undefined;
+    }
     const clientPromises = [...clients.values()];
     clients.clear();
+    lastUsed.clear();
 
     const settled = await Promise.allSettled(clientPromises);
     for (const result of settled) {
