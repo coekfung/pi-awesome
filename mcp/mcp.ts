@@ -87,14 +87,17 @@ const clients = new Map<string, Promise<Client>>();
 const lastUsed = new Map<string, number>();
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 
-async function closeIdleClients(): Promise<void> {
+async function closeIdleClients(): Promise<boolean> {
   const now = Date.now();
+  let changed = false;
   for (const [name] of [...clients]) {
     const last = lastUsed.get(name) ?? 0;
     if (now - last >= IDLE_TIMEOUT_MS) {
       await forgetServer(name);
+      changed = true;
     }
   }
+  return changed;
 }
 
 async function createClient(
@@ -263,7 +266,10 @@ export default function mcp(pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     config = loadConfig(ctx.cwd);
     ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
-    idleTimer = setInterval(closeIdleClients, 60_000);
+    idleTimer = setInterval(async () => {
+      const changed = await closeIdleClients();
+      if (changed) ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
+    }, 60_000);
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
