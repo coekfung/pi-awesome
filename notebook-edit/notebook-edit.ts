@@ -27,12 +27,12 @@ import {
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import {
   withFileMutationQueue,
   type ExtensionAPI,
-} from "@mariozechner/pi-coding-agent";
-import { Text } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 
 type NotebookCell = {
   id?: string;

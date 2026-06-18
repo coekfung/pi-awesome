@@ -24,9 +24,15 @@ import { performance } from "node:perf_hooks";
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
-import { DynamicBorder } from "@mariozechner/pi-coding-agent";
-import { Container, Text, Spacer, matchesKey, Key } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { DynamicBorder } from "@earendil-works/pi-coding-agent";
+import {
+  Container,
+  Text,
+  Spacer,
+  matchesKey,
+  Key,
+} from "@earendil-works/pi-tui";
 
 export default function (pi: ExtensionAPI) {
   let requestStartAt: number | undefined;

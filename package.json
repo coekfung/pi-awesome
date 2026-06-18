@@ -1,7 +1,7 @@
 {
   "name": "pi-awesome",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "check": "tsc -p tsconfig.json --noEmit && prettier --check .",
@@ -22,10 +22,9 @@
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "devDependencies": {
-    "@mariozechner/pi-agent-core": "^0.68.0",
-    "@mariozechner/pi-ai": "^0.68.0",
-    "@mariozechner/pi-coding-agent": "^0.68.0",
-    "@sinclair/typebox": "^0.34.41",
+    "@earendil-works/pi-coding-agent": "^0.79.0",
+    "@earendil-works/pi-tui": "^0.79.0",
+    "typebox": "^1.0.0",
     "@types/node": "^22.0.0",
     "prettier": "^3.5.0",
     "typescript": "^5.8.0"
