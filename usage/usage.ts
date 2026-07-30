@@ -19,26 +19,18 @@ export default function usageExtension(pi: ExtensionAPI) {
     ttl: CACHE_TTL_MS,
   });
 
-  let pending = false;
-  let controller: AbortController | undefined;
+  // Controller of the in-flight query; undefined when idle. Superseding or
+  // shutdown always aborts first, so `signal.aborted` marks a stale refresh.
+  let inFlight: AbortController | undefined;
 
   const clearStatus = (ctx: ExtensionContext) => {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   };
 
-  const refreshStatus = async (
-    ctx: ExtensionContext,
-    signal: AbortSignal,
-    current: AbortController,
-  ) => {
+  const refreshStatus = async (ctx: ExtensionContext, signal: AbortSignal) => {
     const model = ctx.model;
-    if (!model) {
-      clearStatus(ctx);
-      return;
-    }
-
-    const adapter = adapters.find((a) => a.id === model.provider);
-    if (!adapter) {
+    const adapter = model && adapters.find((a) => a.id === model.provider);
+    if (!model || !adapter) {
       clearStatus(ctx);
       return;
     }
@@ -51,28 +43,26 @@ export default function usageExtension(pi: ExtensionAPI) {
         signal,
       );
 
-      if (controller === current && !signal.aborted) {
+      if (!signal.aborted) {
         ctx.ui.setStatus(STATUS_KEY, formatUsageStatusline(groups, ctx));
       }
     } catch {
-      if (controller === current && !signal.aborted) clearStatus(ctx);
+      if (!signal.aborted) clearStatus(ctx);
     }
   };
 
   const scheduleRefresh = (ctx: ExtensionContext, force = false) => {
-    if (pending) {
+    if (inFlight) {
       if (!force) return;
-      controller?.abort();
+      inFlight.abort();
     }
-    pending = true;
     const current = new AbortController();
-    controller = current;
+    inFlight = current;
     void refreshStatus(
       ctx,
       AbortSignal.any([current.signal, AbortSignal.timeout(QUERY_TIMEOUT_MS)]),
-      current,
     ).finally(() => {
-      if (controller === current) pending = false;
+      if (inFlight === current) inFlight = undefined;
     });
   };
 
@@ -93,9 +83,8 @@ export default function usageExtension(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
-    controller?.abort();
-    controller = undefined;
-    pending = false;
+    inFlight?.abort();
+    inFlight = undefined;
     cache.clear();
     clearStatus(ctx);
   });

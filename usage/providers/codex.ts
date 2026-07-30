@@ -1,8 +1,6 @@
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 
-import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
-
 import { cacheKeyForAuth, windowLabel } from "../core.js";
 import type {
   UsageBucket,
@@ -22,49 +20,21 @@ const CodexRateLimitSchema = Type.Object({
   secondary_window: Type.Optional(Type.Union([CodexWindowSchema, Type.Null()])),
 });
 
-const CodexLimitSchema = Type.Object({
-  limit_name: Type.Optional(Type.String()),
-  rate_limit: Type.Optional(Type.Union([CodexRateLimitSchema, Type.Null()])),
-});
-
 const CodexUsageResponseSchema = Type.Object({
   rate_limit: Type.Optional(CodexRateLimitSchema),
-  additional_rate_limits: Type.Optional(
-    Type.Union([Type.Array(CodexLimitSchema), Type.Null()]),
-  ),
 });
 
 type CodexWindow = Static<typeof CodexWindowSchema>;
-type CodexRateLimit = Static<typeof CodexRateLimitSchema>;
 type CodexUsageResponse = Static<typeof CodexUsageResponseSchema>;
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 
 function normalizeGroups(data: CodexUsageResponse): UsageGroup[] {
-  const groups: UsageGroup[] = [];
-
-  if (data.rate_limit) {
-    const buckets = groupBuckets(data.rate_limit);
-    if (buckets.length > 0) groups.push({ prefix: "codex", buckets });
-  }
-
-  for (const item of data.additional_rate_limits ?? []) {
-    const id = item.limit_name;
-    if (!id || !item.rate_limit) continue;
-    const prefix = groupPrefix(id);
-    if (groups.some((g) => g.prefix === prefix)) continue;
-    const buckets = groupBuckets(item.rate_limit);
-    if (buckets.length > 0) groups.push({ prefix, buckets });
-  }
-
-  return groups;
-}
-
-function groupBuckets(rateLimit: CodexRateLimit): UsageBucket[] {
+  if (!data.rate_limit) return [];
   const buckets: UsageBucket[] = [];
-  addWindow(buckets, rateLimit.primary_window);
-  addWindow(buckets, rateLimit.secondary_window);
-  return buckets;
+  addWindow(buckets, data.rate_limit.primary_window);
+  addWindow(buckets, data.rate_limit.secondary_window);
+  return buckets.length > 0 ? [{ prefix: "codex", buckets }] : [];
 }
 
 function addWindow(
@@ -78,48 +48,6 @@ function addWindow(
     limit: 100,
     unit: "percent",
   });
-}
-
-function groupPrefix(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function selectGroups(groups: UsageGroup[], modelId: string): UsageGroup[] {
-  if (groups.length === 0) return [];
-
-  const normalized = normalizeKey(modelId);
-  if (!normalized) return [];
-
-  const modelKey = `-${normalized}-`;
-  let match: { group: UsageGroup; keyLength: number } | undefined;
-  for (const group of groups) {
-    const key = normalizeKey(group.prefix);
-    if (
-      key &&
-      modelKey.includes(`-${key}-`) &&
-      (!match || key.length > match.keyLength)
-    ) {
-      match = { group, keyLength: key.length };
-    }
-  }
-
-  if (match) return [match.group];
-
-  return [
-    groups.find((g) => g.prefix === "codex") ?? (groups[0] as UsageGroup),
-  ];
-}
-
-function normalizeKey(value: string): string | undefined {
-  const separated = value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  let start = 0;
-  let end = separated.length;
-  while (separated[start] === "-") start += 1;
-  while (end > start && separated[end - 1] === "-") end -= 1;
-  return separated.slice(start, end) || undefined;
 }
 
 function clampPercent(value: number): number {
@@ -173,9 +101,7 @@ export const codexAdapter: UsageProviderAdapter = {
     });
 
     const cached = cache.get(cacheKey);
-    if (cached) {
-      return selectGroups(cached, model.id);
-    }
+    if (cached) return cached;
 
     const response = await fetch(CODEX_USAGE_URL, {
       headers: authHeaders,
@@ -190,6 +116,6 @@ export const codexAdapter: UsageProviderAdapter = {
     const groups = normalizeGroups(data);
 
     cache.set(cacheKey, groups);
-    return selectGroups(groups, model.id);
+    return groups;
   },
 };

@@ -8,7 +8,7 @@ A compact collection of practical extensions for [Pi](https://github.com/marioze
 - `nono/nono.ts` — detects whether the Pi process is running inside a [nono](https://github.com/always-further/nono) sandbox via environment variables
 - `notebook-edit/notebook-edit.ts` — provides a `notebook_edit` tool for Jupyter cell edits with pi-style guidance and serialized file writes
 - `mcp/mcp.ts` — provides MCP tool listing/calling and adds configured MCP server names to the system prompt
-- `usage/usage.ts` — shows the active model's provider usage/quota in the status line (e.g. `📊 codex: 59% 5h 61% wk`); adapters resolve auth, fetch, and normalize per-provider data; currently supports OpenAI Codex and model-specific quota buckets
+- `usage/usage.ts` — shows the active model's provider usage/quota in the status line (e.g. `📊 codex: 59% 5h 61% wk`); adapters resolve auth, fetch, and normalize per-provider data; currently supports OpenAI Codex
 
 ## Installation
 
