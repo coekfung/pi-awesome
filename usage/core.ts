@@ -52,7 +52,9 @@ function formatBucket(bucket: UsageBucket): string {
     case "count":
       return `${bucket.remaining}/${bucket.limit} ${bucket.label}`;
     case "usd":
-      return `$${bucket.remaining.toFixed(2)}`;
+      return `$${bucket.remaining.toFixed(2)} ${bucket.label}`;
+    case "cny":
+      return `¥${bucket.remaining.toFixed(2)} ${bucket.label}`;
   }
 }
 

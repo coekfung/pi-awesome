@@ -6,7 +6,7 @@ export interface UsageBucket {
   label: string;
   remaining: number;
   limit: number;
-  unit: "percent" | "count" | "usd";
+  unit: "percent" | "count" | "usd" | "cny";
 }
 
 export interface UsageGroup {

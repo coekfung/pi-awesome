@@ -6,6 +6,7 @@ import type {
 
 import { formatUsageStatusline } from "./core.js";
 import { codexAdapter } from "./providers/codex.js";
+import { deepseekAdapter } from "./providers/deepseek.js";
 import type { UsageGroup, UsageProviderAdapter } from "./types.js";
 
 const STATUS_KEY = "usage";
@@ -90,4 +91,4 @@ export default function usageExtension(pi: ExtensionAPI) {
   });
 }
 
-const adapters: UsageProviderAdapter[] = [codexAdapter];
+const adapters: UsageProviderAdapter[] = [codexAdapter, deepseekAdapter];
