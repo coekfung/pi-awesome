@@ -5,7 +5,6 @@ import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 import { cacheKeyForAuth, windowLabel } from "../core.js";
 import type {
-  JsonObject,
   UsageBucket,
   UsageGroup,
   UsageProviderAdapter,
@@ -94,12 +93,20 @@ function selectGroups(groups: UsageGroup[], modelId: string): UsageGroup[] {
   const normalized = normalizeKey(modelId);
   if (!normalized) return [];
 
-  const matches = groups.filter((g) => {
-    const key = normalizeKey(g.prefix);
-    return key && (normalized === key || normalized.includes(key));
-  });
+  const modelKey = `-${normalized}-`;
+  let match: { group: UsageGroup; keyLength: number } | undefined;
+  for (const group of groups) {
+    const key = normalizeKey(group.prefix);
+    if (
+      key &&
+      modelKey.includes(`-${key}-`) &&
+      (!match || key.length > match.keyLength)
+    ) {
+      match = { group, keyLength: key.length };
+    }
+  }
 
-  if (matches.length > 0) return matches;
+  if (match) return [match.group];
 
   return [
     groups.find((g) => g.prefix === "codex") ?? (groups[0] as UsageGroup),
@@ -167,7 +174,7 @@ export const codexAdapter: UsageProviderAdapter = {
 
     const cached = cache.get(cacheKey);
     if (cached) {
-      return selectGroups(cached as unknown as UsageGroup[], model.id);
+      return selectGroups(cached, model.id);
     }
 
     const response = await fetch(CODEX_USAGE_URL, {
@@ -182,7 +189,7 @@ export const codexAdapter: UsageProviderAdapter = {
     const data = Value.Parse(CodexUsageResponseSchema, raw);
     const groups = normalizeGroups(data);
 
-    cache.set(cacheKey, groups as unknown as JsonObject);
+    cache.set(cacheKey, groups);
     return selectGroups(groups, model.id);
   },
 };

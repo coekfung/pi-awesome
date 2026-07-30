@@ -2,10 +2,6 @@ import type { LRUCache } from "lru-cache";
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 import type { Api, Model } from "@earendil-works/pi-ai";
 
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-export type JsonObject = Record<string, JsonValue>;
-
 export interface UsageBucket {
   label: string;
   remaining: number;
@@ -24,7 +20,7 @@ export interface UsageProviderAdapter {
   query(
     model: Model<Api>,
     registry: ModelRegistry,
-    cache: LRUCache<string, JsonObject>,
+    cache: LRUCache<string, UsageGroup[]>,
     signal: AbortSignal,
   ): Promise<UsageGroup[]>;
 }

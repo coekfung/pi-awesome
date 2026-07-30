@@ -6,7 +6,7 @@ import type {
 
 import { formatUsageStatusline } from "./core.js";
 import { codexAdapter } from "./providers/codex.js";
-import type { JsonObject, UsageProviderAdapter } from "./types.js";
+import type { UsageGroup, UsageProviderAdapter } from "./types.js";
 
 const STATUS_KEY = "usage";
 const CACHE_MAX = 32;
@@ -14,7 +14,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const QUERY_TIMEOUT_MS = 15_000;
 
 export default function usageExtension(pi: ExtensionAPI) {
-  const cache = new LRUCache<string, JsonObject>({
+  const cache = new LRUCache<string, UsageGroup[]>({
     max: CACHE_MAX,
     ttl: CACHE_TTL_MS,
   });
@@ -26,7 +26,11 @@ export default function usageExtension(pi: ExtensionAPI) {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   };
 
-  const refreshStatus = async (ctx: ExtensionContext, signal: AbortSignal) => {
+  const refreshStatus = async (
+    ctx: ExtensionContext,
+    signal: AbortSignal,
+    current: AbortController,
+  ) => {
     const model = ctx.model;
     if (!model) {
       clearStatus(ctx);
@@ -47,10 +51,11 @@ export default function usageExtension(pi: ExtensionAPI) {
         signal,
       );
 
-      ctx.ui.setStatus(STATUS_KEY, formatUsageStatusline(groups, ctx));
-    } catch (err) {
-      console.debug(err);
-      clearStatus(ctx);
+      if (controller === current && !signal.aborted) {
+        ctx.ui.setStatus(STATUS_KEY, formatUsageStatusline(groups, ctx));
+      }
+    } catch {
+      if (controller === current && !signal.aborted) clearStatus(ctx);
     }
   };
 
@@ -65,6 +70,7 @@ export default function usageExtension(pi: ExtensionAPI) {
     void refreshStatus(
       ctx,
       AbortSignal.any([current.signal, AbortSignal.timeout(QUERY_TIMEOUT_MS)]),
+      current,
     ).finally(() => {
       if (controller === current) pending = false;
     });
