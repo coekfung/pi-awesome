@@ -15,18 +15,21 @@
       "./perf/perf.ts",
       "./nono/nono.ts",
       "./notebook-edit/notebook-edit.ts",
-      "./mcp/mcp.ts"
+      "./mcp/mcp.ts",
+      "./usage/usage.ts"
     ]
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "lru-cache": "^11.5.2"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.79.0",
-    "@earendil-works/pi-tui": "^0.79.0",
-    "typebox": "^1.0.0",
+    "@earendil-works/pi-ai": "^0.83.0",
+    "@earendil-works/pi-coding-agent": "^0.83.0",
+    "@earendil-works/pi-tui": "^0.83.0",
     "@types/node": "^22.0.0",
     "prettier": "^3.5.0",
+    "typebox": "^1.0.0",
     "typescript": "^5.8.0"
   }
 }
