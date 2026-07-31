@@ -56,7 +56,7 @@ function parseWindow(html: string, field: UsageField): number | null {
     let at = nameAt + field.length;
     while (at < html.length && (html[at] === ":" || html[at] === " ")) at++;
     if (html.startsWith("null", at)) {
-      from = at + 4; // uninitialized store value; scan the next occurrence
+      from = at + "null".length; // uninitialized store value; scan the next occurrence
       continue;
     }
     const wrapped = /^\$R\[\d+\]=/.exec(html.slice(at));
@@ -166,7 +166,7 @@ async function fetchOpenCodeGoUsage(
     usage.weekly === null &&
     usage.monthly === null
   ) {
-    throw new Error("usage page format changed");
+    throw new Error("usage data unavailable");
   }
   return usage;
 }

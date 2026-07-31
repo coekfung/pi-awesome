@@ -28,7 +28,7 @@ export default function usageExtension(pi: ExtensionAPI) {
   // shutdown always aborts first, so `signal.aborted` marks a stale refresh.
   let inFlight: AbortController | undefined;
 
-  // usage.json merged config for the current session, passed to adapters.
+  // usage.json config for the current session, passed to adapters.
   let config: Config = {};
 
   // Usage queries repeat every turn, so each distinct failure is reported
