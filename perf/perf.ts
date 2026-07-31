@@ -224,6 +224,10 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("perf", {
     description: "Show per-turn performance metrics",
     handler: async (_args, ctx) => {
+      if (ctx.mode !== "tui") {
+        ctx.ui.notify("/perf requires interactive TUI mode", "warning");
+        return;
+      }
       const entries = collectPerfEntries(ctx.sessionManager).reverse();
       if (entries.length === 0) {
         ctx.ui.notify("No perf metrics yet. Run some prompts first.", "info");
