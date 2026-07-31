@@ -25,7 +25,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { collectPerfEntries, showPerfTable } from "./view.js";
+import { collectPerfEntries, showPerfTable } from "./view.ts";
 
 export default function (pi: ExtensionAPI) {
   let requestStartAt: number | undefined;

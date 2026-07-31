@@ -4,10 +4,10 @@ import type {
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 
-import { formatUsageStatusline } from "./core.js";
-import { codexAdapter } from "./providers/codex.js";
-import { deepseekAdapter } from "./providers/deepseek.js";
-import type { UsageGroup, UsageProviderAdapter } from "./types.js";
+import { formatUsageStatusline } from "./core.ts";
+import { codexAdapter } from "./providers/codex.ts";
+import { deepseekAdapter } from "./providers/deepseek.ts";
+import type { UsageGroup, UsageProviderAdapter } from "./types.ts";
 
 const STATUS_KEY = "usage";
 const CACHE_MAX = 32;

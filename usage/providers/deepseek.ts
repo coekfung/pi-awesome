@@ -1,12 +1,12 @@
 import { Type } from "typebox";
 import { Value } from "typebox/value";
 
-import { cacheKeyForAuth } from "../core.js";
+import { cacheKeyForAuth } from "../core.ts";
 import type {
   UsageBucket,
   UsageGroup,
   UsageProviderAdapter,
-} from "../types.js";
+} from "../types.ts";
 
 // Expected JSON shape from the DeepSeek balance endpoint
 

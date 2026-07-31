@@ -1,12 +1,12 @@
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 
-import { cacheKeyForAuth, windowLabel } from "../core.js";
+import { cacheKeyForAuth, windowLabel } from "../core.ts";
 import type {
   UsageBucket,
   UsageGroup,
   UsageProviderAdapter,
-} from "../types.js";
+} from "../types.ts";
 
 // Expected JSON shape from the Codex usage endpoint
 

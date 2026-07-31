@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { UsageBucket, UsageGroup } from "./types.js";
+import type { UsageBucket, UsageGroup } from "./types.ts";
 
 /** Salt regenerated on each process restart — cache keys are not persistent. */
 const FINGERPRINT_SALT = randomBytes(32);
