@@ -11,7 +11,7 @@
  * Design notes (clean-room from Claude Code's NotebookEditTool):
  * - Cell lookup by id first, then falls back to `cell-N` index notation.
  * - Insert places the new cell *after* the referenced cell.
- * - Replace beyond the last cell auto-downgrades to insert.
+ * - Replacing via a `cell-N` index beyond the last cell auto-downgrades to insert.
  * - Editing a code cell clears its execution_count and outputs.
  * - New cells get a random id when nbformat >= 4.5.
  * - Supports @-prefixed notebook paths like pi's built-in tools.

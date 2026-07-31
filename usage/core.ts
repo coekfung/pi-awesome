@@ -7,7 +7,7 @@ import type { UsageBucket, UsageGroup } from "./types.ts";
 const FINGERPRINT_SALT = randomBytes(32);
 
 /**
- * Stable cache key from auth credentials and provider id.
+ * Process-local stable cache key from auth credentials and provider id.
  */
 export function cacheKeyForAuth(
   provider: string,

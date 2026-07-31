@@ -1,5 +1,6 @@
 /**
- * Reads ~/.pi/agent/mcp.json and .pi/mcp.json for HTTP-based MCP server definitions.
+ * Reads the Pi agent directory's mcp.json (normally ~/.pi/agent/mcp.json) and
+ * .pi/mcp.json for Streamable HTTP MCP server definitions.
  *
  * Config format:
  * {

@@ -1,12 +1,12 @@
 /**
  * nono Extension — detect nono sandbox status.
  *
- * nono is a capability-based sandbox tool (https://github.com/always-further/nono).
+ * nono is a capability-based sandbox tool (https://github.com/nolabs-ai/nono).
  * It wraps the entire agent process, so this extension only *detects* presence
  * rather than applying any policy.
  *
  * Detection strategy:
- * - Active sandbox: any environment variable prefixed with `NONO_` is present.
+ * - Active-sandbox signal: any environment variable prefixed with `NONO_` is treated as evidence of an active sandbox.
  * - Installed CLI: `nono --version` succeeds.
  */
 import type {
@@ -41,7 +41,7 @@ async function detectNonoStatus(pi: ExtensionAPI): Promise<NonoStatus> {
       version = match?.[1];
     }
   } catch {
-    // nono not on PATH
+    // nono unavailable or version check failed
   }
 
   return {

@@ -2,11 +2,11 @@
  * Compact performance footer for pi.
  *
  * Display format:
- *   🚀 Perf: 820ms, ≈31.2t/s
+ *   🚀 perf: 820ms, ≈31.2t/s
  *
  * Convention used by this lightweight extension:
  * - `ms` is TTFT to the first non-empty streamed assistant delta.
- * - The first streamed delta may be `text_delta`, `thinking_delta`, or `tool_calls_delta`.
+ * - The first streamed delta may be `text_delta`, `thinking_delta`, or `toolcall_delta`.
  * - `≈t/s` is an approximate provider-based throughput, not strict Visible TPS.
  *
  * Formulas:
@@ -18,7 +18,7 @@
  * - If the agent performs tool calls and sends another model request, the previous perf status stays visible until replacement metrics are available.
  * - While replacement metrics are pending, the prefix and separator stay accented while only stale TTFT/TPS values are shown without extra coloring.
  * - `provider_usage.output` may include provider-specific reasoning/output accounting.
- * - If no qualifying streamed delta or output usage is available, the footer shows `?`.
+ * - If no qualifying streamed delta or output usage is available, the corresponding metric shows `?` on the initial request; during a replacement request, the previous value may remain visible until it is replaced.
  */
 import { performance } from "node:perf_hooks";
 import type {
