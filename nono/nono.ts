@@ -9,7 +9,6 @@
  * - Active sandbox: any environment variable prefixed with `NONO_` is present.
  * - Installed CLI: `nono --version` succeeds.
  */
-import { execSync } from "node:child_process";
 import type {
   ExtensionAPI,
   ExtensionContext,
@@ -24,7 +23,7 @@ interface NonoStatus {
   envVars: Record<string, string>;
 }
 
-function detectNonoStatus(): NonoStatus {
+async function detectNonoStatus(pi: ExtensionAPI): Promise<NonoStatus> {
   const envVars: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (key.startsWith("NONO_") && value !== undefined) {
@@ -35,13 +34,12 @@ function detectNonoStatus(): NonoStatus {
   let installed = false;
   let version: string | undefined;
   try {
-    const output = execSync("nono --version", {
-      encoding: "utf-8",
-      timeout: 3000,
-    }).trim();
-    installed = true;
-    const match = output.match(/nono\s+(\S+)/i);
-    version = match?.[1];
+    const result = await pi.exec("nono", ["--version"], { timeout: 3000 });
+    if (result.code === 0) {
+      installed = true;
+      const match = result.stdout.trim().match(/nono\s+(\S+)/i);
+      version = match?.[1];
+    }
   } catch {
     // nono not on PATH
   }
@@ -57,8 +55,8 @@ function detectNonoStatus(): NonoStatus {
 export default function (pi: ExtensionAPI) {
   let lastStatus: NonoStatus | undefined;
 
-  const refreshStatus = () => {
-    lastStatus = detectNonoStatus();
+  const refreshStatus = async () => {
+    lastStatus = await detectNonoStatus(pi);
     return lastStatus;
   };
 
@@ -66,7 +64,8 @@ export default function (pi: ExtensionAPI) {
     const theme = ctx.ui.theme;
     const prefix = theme.fg("accent", "🛡️ nono: ");
     if (status.active) {
-      return `${prefix}${theme.fg("accent", `v${status.version}`)}`;
+      const label = status.version ? `v${status.version}` : "active";
+      return `${prefix}${theme.fg("accent", label)}`;
     }
     if (status.installed) {
       return `${prefix}inactive`;
@@ -75,7 +74,7 @@ export default function (pi: ExtensionAPI) {
   };
 
   pi.on("session_start", async (_event, ctx) => {
-    const status = refreshStatus();
+    const status = await refreshStatus();
     ctx.ui.setStatus(STATUS_KEY, formatStatus(status, ctx));
 
     if (status.active) {
@@ -86,7 +85,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("nono", {
     description: "Show nono sandbox detection status",
     handler: async (_args, ctx) => {
-      const status = lastStatus ?? refreshStatus();
+      const status = lastStatus ?? (await refreshStatus());
       const lines = [
         "nono Detection Status:",
         `  Installed: ${status.installed ? "yes" : "no"}`,
