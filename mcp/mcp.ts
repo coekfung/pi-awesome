@@ -279,7 +279,8 @@ const STATUS_KEY = "mcp";
 function formatStatus(theme: Theme) {
   const total = Object.keys(config.mcpServers).length;
   if (total === 0) return undefined;
-  return theme.fg("accent", `💎 mcp: ${clients.size}/${total}`);
+  const text = `📡 mcp: ${clients.size}/${total}`;
+  return clients.size === 0 ? text : theme.fg("accent", text);
 }
 
 async function withServer<T>(
