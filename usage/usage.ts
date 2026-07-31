@@ -24,6 +24,10 @@ export default function usageExtension(pi: ExtensionAPI) {
   // shutdown always aborts first, so `signal.aborted` marks a stale refresh.
   let inFlight: AbortController | undefined;
 
+  // Usage queries repeat every turn, so each distinct failure is reported
+  // once per session instead of on every refresh.
+  const notifiedFailures = new Set<string>();
+
   const clearStatus = (ctx: ExtensionContext) => {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   };
@@ -47,8 +51,15 @@ export default function usageExtension(pi: ExtensionAPI) {
       if (!signal.aborted) {
         ctx.ui.setStatus(STATUS_KEY, formatUsageStatusline(groups, ctx));
       }
-    } catch {
-      if (!signal.aborted) clearStatus(ctx);
+    } catch (error) {
+      if (signal.aborted) return;
+      clearStatus(ctx);
+      const msg = error instanceof Error ? error.message : String(error);
+      const key = `${adapter.id}:${msg}`;
+      if (!notifiedFailures.has(key)) {
+        notifiedFailures.add(key);
+        ctx.ui.notify(`Usage: ${adapter.displayName}: ${msg}`, "warning");
+      }
     }
   };
 
@@ -68,6 +79,7 @@ export default function usageExtension(pi: ExtensionAPI) {
   };
 
   pi.on("session_start", (_event, ctx) => {
+    notifiedFailures.clear();
     scheduleRefresh(ctx);
   });
 
