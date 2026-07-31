@@ -6,7 +6,8 @@
  *   "mcpServers": {
  *     "exa": {
  *       "url": "https://mcp.exa.ai/mcp",
- *       "headers": { "x-api-key": "your-key" }
+ *       "headers": { "x-api-key": "your-key" },
+ *       "prompt": "Web search; use for current events and documentation lookup"
  *     }
  *   }
  * }
@@ -40,6 +41,7 @@ import {
 export interface McpServerConfig {
   url: string;
   headers?: Record<string, string>;
+  prompt?: string;
 }
 
 export interface McpConfig {
@@ -292,9 +294,22 @@ export default function mcp(pi: ExtensionAPI) {
     const names = Object.keys(config.mcpServers).sort();
     if (names.length === 0) return;
 
-    return {
-      systemPrompt: `${event.systemPrompt}\n\nAvailable MCP servers: ${names.map((name) => `\`${name}\``).join(", ")}`,
-    };
+    const servers = names
+      .map((name) => {
+        const prompt = config.mcpServers[name].prompt;
+        return `- \`${name}\`${prompt ? `: ${prompt}` : ""}`;
+      })
+      .join("\n");
+
+    const block =
+      "## MCP\n\n" +
+      "MCP (Model Context Protocol) servers provide external tools. " +
+      "Use a server when the user explicitly asks for it or when the task matches its use case below. " +
+      "Flow: call `mcp_tools_list` with the server name to discover tools and schemas, " +
+      "then `mcp_tools_call` with server, tool, and arguments.\n\n" +
+      `Available servers:\n${servers}`;
+
+    return { systemPrompt: `${event.systemPrompt}\n\n${block}` };
   });
 
   pi.registerTool({
