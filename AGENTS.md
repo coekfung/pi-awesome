@@ -36,6 +36,7 @@
 - For code changes, run `npm run check`.
 - `npm run check` runs `tsc -p tsconfig.json --noEmit` and `prettier --check .`.
 - `npm run check:fix` applies `prettier --write .`, then reruns checks.
+- `npm run test` runs unit tests (`node --test`).
 - Docs-only changes usually do not require full validation.
 - There are no `build` or `clean` npm scripts.
 

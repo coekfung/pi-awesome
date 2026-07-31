@@ -35,7 +35,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 
-type NotebookCell = {
+export type NotebookCell = {
   id?: string;
   cell_type: "code" | "markdown";
   source: string | string[];
@@ -44,7 +44,7 @@ type NotebookCell = {
   outputs?: any[];
 };
 
-type NotebookContent = {
+export type NotebookContent = {
   cells: NotebookCell[];
   metadata: {
     language_info?: { name?: string };
@@ -86,19 +86,19 @@ const notebookEditSchema = Type.Object(
   { additionalProperties: false },
 );
 
-function normalizeNotebookPath(p: string): string {
+export function normalizeNotebookPath(p: string): string {
   if (p.startsWith("@")) p = p.slice(1);
   if (p === "~") return homedir();
   if (p.startsWith("~/")) return homedir() + p.slice(1);
   return p;
 }
 
-function resolvePath(cwd: string, p: string): string {
+export function resolvePath(cwd: string, p: string): string {
   const normalized = normalizeNotebookPath(p);
   return isAbsolute(normalized) ? normalized : resolve(cwd, normalized);
 }
 
-function parseCellId(cellId: string): number | undefined {
+export function parseCellId(cellId: string): number | undefined {
   const match = cellId.match(/^cell-(\d+)$/);
   if (match?.[1]) {
     const index = Number.parseInt(match[1], 10);
@@ -107,7 +107,7 @@ function parseCellId(cellId: string): number | undefined {
   return undefined;
 }
 
-function detectLineEnding(content: string): "\n" | "\r\n" {
+export function detectLineEnding(content: string): "\n" | "\r\n" {
   return content.includes("\r\n") ? "\r\n" : "\n";
 }
 
@@ -115,7 +115,7 @@ function generateCellId(): string {
   return randomUUID().replace(/-/g, "").substring(0, 13);
 }
 
-function mutateNotebook(
+export function mutateNotebook(
   notebook: NotebookContent,
   params: {
     cell_id?: string;

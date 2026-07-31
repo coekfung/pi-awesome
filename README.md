@@ -26,9 +26,11 @@ Pi loads the extensions declared in `package.json > pi.extensions` automatically
 npm install
 npm run check
 npm run check:fix
+npm run test
 ```
 
 - Source code lives in per-extension subdirectories: `perf/`, `nono/`, `notebook-edit/`, `mcp/`, `usage/`
 - The project uses TypeScript with ESM modules
 - `npm run check` runs TypeScript and formatting checks
 - `npm run check:fix` applies Prettier fixes, then reruns checks
+- `npm run test` runs unit tests with Node's built-in test runner

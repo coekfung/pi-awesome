@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "check": "tsc -p tsconfig.json --noEmit && prettier --check .",
-    "check:fix": "prettier --write . && npm run check"
+    "check:fix": "prettier --write . && npm run check",
+    "test": "node --test"
   },
   "keywords": [
     "pi-package"
