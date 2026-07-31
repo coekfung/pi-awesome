@@ -19,6 +19,8 @@ import { randomUUID } from "node:crypto";
 import type {
   AgentToolResult,
   ExtensionAPI,
+  ExtensionContext,
+  ResourceDiagnostic,
 } from "@earendil-works/pi-coding-agent";
 import {
   DEFAULT_MAX_BYTES,
@@ -28,7 +30,8 @@ import {
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
+import { Type, type Static } from "typebox";
+import { Value } from "typebox/value";
 import { Text } from "@earendil-works/pi-tui";
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -38,50 +41,67 @@ import {
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 
-export interface McpServerConfig {
-  url: string;
-  headers?: Record<string, string>;
-  prompt?: string;
-}
+const McpServerConfigSchema = Type.Object({
+  url: Type.String(),
+  headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+  prompt: Type.Optional(Type.String()),
+});
+
+const McpConfigSchema = Type.Object({
+  mcpServers: Type.Optional(Type.Record(Type.String(), McpServerConfigSchema)),
+});
+
+export type McpServerConfig = Static<typeof McpServerConfigSchema>;
 
 export interface McpConfig {
   mcpServers: Record<string, McpServerConfig>;
 }
 
-function mergeConfigs(base: McpConfig, overrides: McpConfig): McpConfig {
-  return {
-    mcpServers: { ...base.mcpServers, ...overrides.mcpServers },
-  };
-}
-
 const DEFAULT_CONFIG: McpConfig = { mcpServers: {} };
 
-export function loadConfig(cwd: string): McpConfig {
-  const globalPath = join(getAgentDir(), "mcp.json");
-  const projectPath = join(cwd, ".pi", "mcp.json");
-
-  let global = DEFAULT_CONFIG;
-  let project = DEFAULT_CONFIG;
-
-  if (existsSync(globalPath)) {
-    try {
-      const raw = JSON.parse(readFileSync(globalPath, "utf-8"));
-      global = { mcpServers: raw.mcpServers ?? {} };
-    } catch {
-      console.error(`MCP: Failed to parse ${globalPath}`);
+function parseConfigFile(
+  path: string,
+  diagnostics: ResourceDiagnostic[],
+): McpConfig {
+  if (!existsSync(path)) return DEFAULT_CONFIG;
+  try {
+    const raw: unknown = JSON.parse(readFileSync(path, "utf-8"));
+    if (!Value.Check(McpConfigSchema, raw)) {
+      const error = Value.Errors(McpConfigSchema, raw)[0];
+      diagnostics.push({
+        type: "warning",
+        path,
+        message: `Invalid config: ${error.instancePath}: ${error.message}`,
+      });
+      return DEFAULT_CONFIG;
     }
+    return { mcpServers: raw.mcpServers ?? {} };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    diagnostics.push({
+      type: "warning",
+      path,
+      message: `Failed to parse config: ${msg}`,
+    });
+    return DEFAULT_CONFIG;
   }
+}
 
-  if (existsSync(projectPath)) {
-    try {
-      const raw = JSON.parse(readFileSync(projectPath, "utf-8"));
-      project = { mcpServers: raw.mcpServers ?? {} };
-    } catch {
-      console.error(`MCP: Failed to parse ${projectPath}`);
-    }
-  }
-
-  return mergeConfigs(global, project);
+export function loadConfig(
+  cwd: string,
+  diagnostics: ResourceDiagnostic[] = [],
+): McpConfig {
+  const globalConfig = parseConfigFile(
+    join(getAgentDir(), "mcp.json"),
+    diagnostics,
+  );
+  const projectConfig = parseConfigFile(
+    join(cwd, ".pi", "mcp.json"),
+    diagnostics,
+  );
+  return {
+    mcpServers: { ...globalConfig.mcpServers, ...projectConfig.mcpServers },
+  };
 }
 
 let config: McpConfig = DEFAULT_CONFIG;
@@ -118,7 +138,9 @@ async function createClient(
     await client.connect(transport);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to connect to "${serverName}": ${msg}.`);
+    throw new Error(`Failed to connect to "${serverName}": ${msg}.`, {
+      cause: error,
+    });
   }
 
   return client;
@@ -254,19 +276,39 @@ function fallbackText(result: AgentToolResult<unknown>, theme: Theme) {
 
 const STATUS_KEY = "mcp";
 
-function formatStatus(theme?: Theme) {
+function formatStatus(theme: Theme) {
   const total = Object.keys(config.mcpServers).length;
   if (total === 0) return undefined;
-  const active = clients.size;
-  const text = `💎 mcp: ${active}/${total}`;
-  return theme ? theme.fg("accent", text) : text;
+  return theme.fg("accent", `💎 mcp: ${clients.size}/${total}`);
+}
+
+async function withServer<T>(
+  serverName: string,
+  ctx: ExtensionContext,
+  fn: (client: Client) => Promise<T>,
+): Promise<T> {
+  try {
+    const client = await connectServer(serverName);
+    ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
+    return await fn(client);
+  } catch (error) {
+    if (shouldForgetServer(error)) {
+      await forgetServer(serverName);
+      ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
+    }
+    throw error;
+  }
 }
 
 export default function mcp(pi: ExtensionAPI) {
   let idleTimer: ReturnType<typeof setInterval> | undefined;
 
   pi.on("session_start", async (_event, ctx) => {
-    config = loadConfig(ctx.cwd);
+    const diagnostics: ResourceDiagnostic[] = [];
+    config = loadConfig(ctx.cwd, diagnostics);
+    for (const d of diagnostics) {
+      ctx.ui.notify(`MCP: ${d.message} (${d.path})`, "warning");
+    }
     ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
     idleTimer = setInterval(async () => {
       const changed = await closeIdleClients();
@@ -286,7 +328,9 @@ export default function mcp(pi: ExtensionAPI) {
 
     const settled = await Promise.allSettled(clientPromises);
     for (const result of settled) {
-      if (result.status === "fulfilled") await result.value.close();
+      if (result.status === "fulfilled") {
+        await result.value.close().catch(() => undefined);
+      }
     }
   });
 
@@ -324,9 +368,7 @@ export default function mcp(pi: ExtensionAPI) {
       }),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
-      try {
-        const client = await connectServer(params.name);
-        ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
+      return withServer(params.name, ctx, async (client) => {
         const tools = await listAllTools(client);
         const toolDocs = tools.map((tool) => {
           const title = tool.title ? ` — ${tool.title}` : "";
@@ -337,13 +379,7 @@ export default function mcp(pi: ExtensionAPI) {
           content: [{ type: "text", text }],
           details: { name: params.name, tools },
         };
-      } catch (error) {
-        if (shouldForgetServer(error)) {
-          await forgetServer(params.name);
-          ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
-        }
-        throw error;
-      }
+      });
     },
     renderCall(args, theme) {
       return new Text(
@@ -398,9 +434,7 @@ export default function mcp(pi: ExtensionAPI) {
       ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
-      try {
-        const client = await connectServer(params.name);
-        ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
+      return withServer(params.name, ctx, async (client) => {
         const result = await client.callTool({
           name: params.tool,
           arguments: params.arguments ?? {},
@@ -413,13 +447,7 @@ export default function mcp(pi: ExtensionAPI) {
             isError: result.isError === true,
           },
         };
-      } catch (error) {
-        if (shouldForgetServer(error)) {
-          await forgetServer(params.name);
-          ctx.ui.setStatus(STATUS_KEY, formatStatus(ctx.ui.theme));
-        }
-        throw error;
-      }
+      });
     },
     renderCall(args, theme) {
       return new Text(
