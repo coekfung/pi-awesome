@@ -22,5 +22,6 @@ export interface UsageProviderAdapter {
     registry: ModelRegistry,
     cache: LRUCache<string, UsageGroup[]>,
     signal: AbortSignal,
+    config?: any,
   ): Promise<UsageGroup[]>;
 }

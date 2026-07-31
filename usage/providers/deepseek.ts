@@ -20,6 +20,7 @@ const DeepSeekBalanceResponseSchema = Type.Object({
 });
 
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
+const ADAPTER_ID = "deepseek";
 
 function normalizeGroups(data: {
   balance_infos: { currency: string; total_balance: string }[];
@@ -39,14 +40,14 @@ function normalizeGroups(data: {
 }
 
 export const deepseekAdapter: UsageProviderAdapter = {
-  id: "deepseek",
+  id: ADAPTER_ID,
   displayName: "DeepSeek",
 
   async query(model, registry, cache, signal) {
     const modelAuth = await registry.getApiKeyAndHeaders(model);
     if (!modelAuth.ok || !modelAuth.apiKey) return [];
 
-    const cacheKey = cacheKeyForAuth("deepseek", {
+    const cacheKey = cacheKeyForAuth(ADAPTER_ID, {
       apiKey: modelAuth.apiKey,
     });
     const cached = cache.get(cacheKey);

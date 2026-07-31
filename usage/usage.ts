@@ -1,12 +1,16 @@
 import { LRUCache } from "lru-cache";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
+import { join } from "node:path";
+import {
+  getAgentDir,
+  type ExtensionAPI,
+  type ExtensionContext,
+  type ResourceDiagnostic,
 } from "@earendil-works/pi-coding-agent";
 
-import { formatUsageStatusline } from "./core.ts";
+import { formatUsageStatusline, parseConfigFile, type Config } from "./core.ts";
 import { codexAdapter } from "./providers/codex.ts";
 import { deepseekAdapter } from "./providers/deepseek.ts";
+import { opencodeGoAdapter } from "./providers/opencode-go.ts";
 import type { UsageGroup, UsageProviderAdapter } from "./types.ts";
 
 const STATUS_KEY = "usage";
@@ -23,6 +27,9 @@ export default function usageExtension(pi: ExtensionAPI) {
   // Controller of the in-flight query; undefined when idle. Superseding or
   // shutdown always aborts first, so `signal.aborted` marks a stale refresh.
   let inFlight: AbortController | undefined;
+
+  // usage.json merged config for the current session, passed to adapters.
+  let config: Config = {};
 
   // Usage queries repeat every turn, so each distinct failure is reported
   // once per session instead of on every refresh.
@@ -46,6 +53,7 @@ export default function usageExtension(pi: ExtensionAPI) {
         ctx.modelRegistry,
         cache,
         signal,
+        config?.[adapter.id],
       );
 
       if (!signal.aborted) {
@@ -79,6 +87,11 @@ export default function usageExtension(pi: ExtensionAPI) {
   };
 
   pi.on("session_start", (_event, ctx) => {
+    const diagnostics: ResourceDiagnostic[] = [];
+    config = parseConfigFile(join(getAgentDir(), "usage.json"), diagnostics);
+    for (const d of diagnostics) {
+      ctx.ui.notify(`Usage: ${d.message} (${d.path})`, "warning");
+    }
     notifiedFailures.clear();
     scheduleRefresh(ctx);
   });
@@ -98,9 +111,14 @@ export default function usageExtension(pi: ExtensionAPI) {
   pi.on("session_shutdown", (_event, ctx) => {
     inFlight?.abort();
     inFlight = undefined;
+    config = {};
     cache.clear();
     clearStatus(ctx);
   });
 }
 
-const adapters: UsageProviderAdapter[] = [codexAdapter, deepseekAdapter];
+const adapters: UsageProviderAdapter[] = [
+  codexAdapter,
+  deepseekAdapter,
+  opencodeGoAdapter,
+];

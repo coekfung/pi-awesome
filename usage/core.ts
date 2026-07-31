@@ -1,10 +1,52 @@
 import { createHmac, randomBytes } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionContext,
+  ResourceDiagnostic,
+} from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
+import { Value } from "typebox/value";
 import type { UsageBucket, UsageGroup } from "./types.ts";
 
 /** Salt regenerated on each process restart — cache keys are not persistent. */
 const FINGERPRINT_SALT = randomBytes(32);
+
+/**
+ * usage.json contents — a map of provider id to provider-specific config.
+ * Adapters parse their own section; the shape is up to each provider.
+ */
+export type Config = Record<string, any>;
+
+const UsageConfigSchema = Type.Record(Type.String(), Type.Unknown());
+
+export function parseConfigFile(
+  path: string,
+  diagnostics: ResourceDiagnostic[],
+): Config {
+  if (!existsSync(path)) return {};
+  try {
+    const raw: unknown = JSON.parse(readFileSync(path, "utf-8"));
+    if (!Value.Check(UsageConfigSchema, raw)) {
+      const error = Value.Errors(UsageConfigSchema, raw)[0];
+      diagnostics.push({
+        type: "warning",
+        path,
+        message: `Invalid config: ${error.instancePath}: ${error.message}`,
+      });
+      return {};
+    }
+    return Value.Parse(UsageConfigSchema, raw);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    diagnostics.push({
+      type: "warning",
+      path,
+      message: `Failed to parse config: ${msg}`,
+    });
+    return {};
+  }
+}
 
 /**
  * Process-local stable cache key from auth credentials and provider id.
@@ -21,6 +63,11 @@ export function cacheKeyForAuth(
     .update(canonical)
     .digest("hex");
   return `${provider}:${fp}`;
+}
+
+/** Clamps a percentage into the 0-100 range. */
+export function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value));
 }
 
 /** Compact time-window label for statusline display. */

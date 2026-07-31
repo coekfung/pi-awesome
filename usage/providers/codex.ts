@@ -1,7 +1,7 @@
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 
-import { cacheKeyForAuth, windowLabel } from "../core.ts";
+import { cacheKeyForAuth, clampPercent, windowLabel } from "../core.ts";
 import type {
   UsageBucket,
   UsageGroup,
@@ -28,6 +28,7 @@ type CodexWindow = Static<typeof CodexWindowSchema>;
 type CodexUsageResponse = Static<typeof CodexUsageResponseSchema>;
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+const ADAPTER_ID = "openai-codex";
 
 function normalizeGroups(data: CodexUsageResponse): UsageGroup[] {
   if (!data.rate_limit) return [];
@@ -50,10 +51,6 @@ function addWindow(
   });
 }
 
-function clampPercent(value: number): number {
-  return Math.min(100, Math.max(0, value));
-}
-
 function authorizationFrom(auth: {
   apiKey?: string;
   headers?: Record<string, string | null>;
@@ -66,7 +63,7 @@ function authorizationFrom(auth: {
 }
 
 export const codexAdapter: UsageProviderAdapter = {
-  id: "openai-codex",
+  id: ADAPTER_ID,
   displayName: "OpenAI Codex",
 
   async query(model, registry, cache, signal) {
@@ -85,7 +82,7 @@ export const codexAdapter: UsageProviderAdapter = {
       if (authz) authHeaders.Authorization = authz;
     }
     if (!authHeaders.Authorization) {
-      const provider = await registry.getProviderAuth("openai-codex");
+      const provider = await registry.getProviderAuth(ADAPTER_ID);
       if (provider) {
         const authz = authorizationFrom({
           apiKey: provider.auth.apiKey,
@@ -96,7 +93,7 @@ export const codexAdapter: UsageProviderAdapter = {
     }
     if (!authHeaders.Authorization) return [];
 
-    const cacheKey = cacheKeyForAuth("openai-codex", {
+    const cacheKey = cacheKeyForAuth(ADAPTER_ID, {
       headers: authHeaders,
     });
 
