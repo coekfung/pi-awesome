@@ -28,6 +28,7 @@
 - Do not rename public tool names or change tool parameters without clear justification.
 - Ask before removing functionality or behavior that appears intentional.
 - If user-facing behavior changes, update `README.md` in the same task.
+- Keep `README.md` entries concise and user-facing, with no implementation details, edge cases, or error handling.
 - Don't write a helper that doesn't make its callers simpler than the code it wraps.
 
 ## Validation
