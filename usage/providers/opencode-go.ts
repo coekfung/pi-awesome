@@ -34,11 +34,12 @@ const ADAPTER_ID = "opencode-go";
 type UsageField = "rollingUsage" | "weeklyUsage" | "monthlyUsage";
 
 /**
- * Parses the usage windows out of the dashboard HTML. A field may appear
- * multiple times: once as `field:null` in the initial store state and once
- * as the hydrated value, possibly wrapped as `field:$R[12]={...}`. The
- * object is matched by braces and its values are extracted by name, so
- * neither key order nor the wrapper format matters.
+ * Parses the usage windows out of the dashboard HTML. Each window is a flat
+ * object in the page's embedded seroval store state, e.g.
+ * `rollingUsage:$R[35]={status:"ok",resetInSec:17551,usagePercent:0}`. The
+ * same field name may also appear earlier as a `field:null` placeholder in
+ * the billing state, and key order inside the object is not fixed; the
+ * regex skips placeholders and matches values by name, so neither matters.
  */
 export function parseOpenCodeGoUsage(html: string): OpenCodeGoUsage {
   return {
@@ -49,62 +50,22 @@ export function parseOpenCodeGoUsage(html: string): OpenCodeGoUsage {
 }
 
 function parseWindow(html: string, field: UsageField): number | null {
-  let from = 0;
-  for (;;) {
-    const nameAt = html.indexOf(field, from);
-    if (nameAt === -1) return null; // field absent from the page
-    let at = nameAt + field.length;
-    while (at < html.length && (html[at] === ":" || html[at] === " ")) at++;
-    if (html.startsWith("null", at)) {
-      from = at + "null".length; // uninitialized store value; scan the next occurrence
-      continue;
-    }
-    const wrapped = /^\$R\[\d+\]=/.exec(html.slice(at));
-    if (wrapped) at += wrapped[0].length;
-    const open = html.indexOf("{", at);
-    if (open === -1) throw fieldError(field, "no window object");
-    const close = matchClose(html, open);
-    if (close === -1) throw fieldError(field, "unbalanced window object");
-    const body = html.slice(open + 1, close);
-
-    const status = extractString(body, "status");
-    if (status !== undefined && status !== "ok") return null;
-
-    const usagePercent = extractNumber(body, "usagePercent");
-    if (usagePercent === null) {
-      throw fieldError(field, "missing usagePercent");
-    }
-    return usagePercent;
+  const match = new RegExp(
+    `${field}:\\s*(?:\\$R\\[\\d+\\]\\s*=\\s*)?\\{([^{}]*)\\}`,
+  ).exec(html);
+  if (!match) return null; // field absent, or only a `field:null` placeholder
+  const body = match[1];
+  const status = /status\s*:\s*"([^"]*)"/.exec(body)?.[1];
+  if (status !== undefined && status !== "ok") return null;
+  const usagePercent = /usagePercent\s*:\s*(-?\d+(?:\.\d+)?)/.exec(body)?.[1];
+  if (usagePercent === undefined) {
+    throw fieldError(field, "missing usagePercent");
   }
+  return Number(usagePercent);
 }
 
 function fieldError(field: string, detail: string): Error {
   return new Error(`usage page changed (${field}: ${detail})`);
-}
-
-function matchClose(html: string, open: number): number {
-  let depth = 0;
-  for (let at = open; at < html.length; at++) {
-    if (html[at] === "{") depth++;
-    else if (html[at] === "}") {
-      depth--;
-      if (depth === 0) return at;
-    }
-  }
-  return -1;
-}
-
-function extractNumber(body: string, key: string): number | null {
-  const at = body.indexOf(key);
-  if (at === -1) return null;
-  const match = body.slice(at + key.length).match(/^\s*:\s*(-?\d+(?:\.\d+)?)/);
-  return match ? Number(match[1]) : null;
-}
-
-function extractString(body: string, key: string): string | undefined {
-  const at = body.indexOf(key);
-  if (at === -1) return undefined;
-  return body.slice(at + key.length).match(/^\s*:\s*"([^"]*)"/)?.[1];
 }
 
 /**
