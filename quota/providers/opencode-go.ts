@@ -17,12 +17,12 @@ import { cacheKeyForAuth, clampPercent } from "../core.ts";
 import { Type, type Static } from "typebox";
 import { Value } from "typebox/value";
 import type {
-  UsageBucket,
-  UsageGroup,
-  UsageProviderAdapter,
+  QuotaBucket,
+  QuotaGroup,
+  QuotaProviderAdapter,
 } from "../types.ts";
 
-interface OpenCodeGoUsage {
+interface OpenCodeGoQuota {
   rolling: number | null;
   weekly: number | null;
   monthly: number | null;
@@ -31,7 +31,7 @@ interface OpenCodeGoUsage {
 const DASHBOARD_BASE_URL = "https://opencode.ai/workspace";
 const ADAPTER_ID = "opencode-go";
 
-type UsageField = "rollingUsage" | "weeklyUsage" | "monthlyUsage";
+type QuotaField = "rollingUsage" | "weeklyUsage" | "monthlyUsage";
 
 /**
  * Parses the usage windows out of the dashboard HTML. Each window is a flat
@@ -41,7 +41,7 @@ type UsageField = "rollingUsage" | "weeklyUsage" | "monthlyUsage";
  * the billing state, and key order inside the object is not fixed; the
  * regex skips placeholders and matches values by name, so neither matters.
  */
-export function parseOpenCodeGoUsage(html: string): OpenCodeGoUsage {
+export function parseOpenCodeGoQuota(html: string): OpenCodeGoQuota {
   return {
     rolling: parseWindow(html, "rollingUsage"),
     weekly: parseWindow(html, "weeklyUsage"),
@@ -49,7 +49,7 @@ export function parseOpenCodeGoUsage(html: string): OpenCodeGoUsage {
   };
 }
 
-function parseWindow(html: string, field: UsageField): number | null {
+function parseWindow(html: string, field: QuotaField): number | null {
   const match = new RegExp(
     `${field}:\\s*(?:\\$R\\[\\d+\\]\\s*=\\s*)?\\{([^{}]*)\\}`,
   ).exec(html);
@@ -74,11 +74,11 @@ function fieldError(field: string, detail: string): Error {
  * only in the request header and never appears in errors or logs. The caller
  * controls cancellation and timeouts via `signal`.
  */
-async function fetchOpenCodeGoUsage(
+async function fetchOpenCodeGoQuota(
   workspaceId: string,
   authCookie: string,
   signal?: AbortSignal,
-): Promise<OpenCodeGoUsage> {
+): Promise<OpenCodeGoQuota> {
   const url = `${DASHBOARD_BASE_URL}/${encodeURIComponent(workspaceId)}/go`;
 
   let response: Response;
@@ -121,15 +121,15 @@ async function fetchOpenCodeGoUsage(
     throw new Error("usage endpoint did not return the expected page");
   }
 
-  const usage = parseOpenCodeGoUsage(html);
+  const quota = parseOpenCodeGoQuota(html);
   if (
-    usage.rolling === null &&
-    usage.weekly === null &&
-    usage.monthly === null
+    quota.rolling === null &&
+    quota.weekly === null &&
+    quota.monthly === null
   ) {
     throw new Error("usage data unavailable");
   }
-  return usage;
+  return quota;
 }
 
 const OpenCodeGoConfigSchema = Type.Object({
@@ -152,16 +152,16 @@ function parseAuth(config: any): OpenCodeGoAuth | undefined {
   return Value.Parse(OpenCodeGoConfigSchema, config);
 }
 
-function normalizeGroups(usage: OpenCodeGoUsage): UsageGroup[] {
-  const buckets: UsageBucket[] = [];
-  addWindow(buckets, "5h", usage.rolling);
-  addWindow(buckets, "wk", usage.weekly);
-  addWindow(buckets, "mo", usage.monthly);
+function normalizeGroups(quota: OpenCodeGoQuota): QuotaGroup[] {
+  const buckets: QuotaBucket[] = [];
+  addWindow(buckets, "5h", quota.rolling);
+  addWindow(buckets, "wk", quota.weekly);
+  addWindow(buckets, "mo", quota.monthly);
   return buckets.length > 0 ? [{ prefix: "opencode", buckets }] : [];
 }
 
 function addWindow(
-  buckets: UsageBucket[],
+  buckets: QuotaBucket[],
   label: string,
   usagePercent: number | null,
 ): void {
@@ -174,7 +174,7 @@ function addWindow(
   });
 }
 
-export const opencodeGoAdapter: UsageProviderAdapter = {
+export const opencodeGoAdapter: QuotaProviderAdapter = {
   id: ADAPTER_ID,
   displayName: "OpenCode Go",
 
@@ -192,12 +192,12 @@ export const opencodeGoAdapter: UsageProviderAdapter = {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
-    const usage = await fetchOpenCodeGoUsage(
+    const quota = await fetchOpenCodeGoQuota(
       auth.workspaceId,
       auth.authCookie,
       signal,
     );
-    const groups = normalizeGroups(usage);
+    const groups = normalizeGroups(quota);
     cache.set(cacheKey, groups);
     return groups;
   },

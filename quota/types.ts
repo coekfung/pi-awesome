@@ -2,26 +2,26 @@ import type { LRUCache } from "lru-cache";
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 import type { Api, Model } from "@earendil-works/pi-ai";
 
-export interface UsageBucket {
+export interface QuotaBucket {
   label: string;
   remaining: number;
   limit: number;
   unit: "percent" | "count" | "usd" | "cny";
 }
 
-export interface UsageGroup {
+export interface QuotaGroup {
   prefix: string;
-  buckets: UsageBucket[];
+  buckets: QuotaBucket[];
 }
 
-export interface UsageProviderAdapter {
+export interface QuotaProviderAdapter {
   id: string;
   displayName: string;
   query(
     model: Model<Api>,
     registry: ModelRegistry,
-    cache: LRUCache<string, UsageGroup[]>,
+    cache: LRUCache<string, QuotaGroup[]>,
     signal: AbortSignal,
     config?: any,
-  ): Promise<UsageGroup[]>;
+  ): Promise<QuotaGroup[]>;
 }

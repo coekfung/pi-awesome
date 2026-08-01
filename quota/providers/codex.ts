@@ -3,9 +3,9 @@ import { Value } from "typebox/value";
 
 import { cacheKeyForAuth, clampPercent, windowLabel } from "../core.ts";
 import type {
-  UsageBucket,
-  UsageGroup,
-  UsageProviderAdapter,
+  QuotaBucket,
+  QuotaGroup,
+  QuotaProviderAdapter,
 } from "../types.ts";
 
 // Expected JSON shape from the Codex usage endpoint
@@ -20,26 +20,26 @@ const CodexRateLimitSchema = Type.Object({
   secondary_window: Type.Optional(Type.Union([CodexWindowSchema, Type.Null()])),
 });
 
-const CodexUsageResponseSchema = Type.Object({
+const CodexQuotaResponseSchema = Type.Object({
   rate_limit: Type.Optional(CodexRateLimitSchema),
 });
 
 type CodexWindow = Static<typeof CodexWindowSchema>;
-type CodexUsageResponse = Static<typeof CodexUsageResponseSchema>;
+type CodexQuotaResponse = Static<typeof CodexQuotaResponseSchema>;
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 const ADAPTER_ID = "openai-codex";
 
-function normalizeGroups(data: CodexUsageResponse): UsageGroup[] {
+function normalizeGroups(data: CodexQuotaResponse): QuotaGroup[] {
   if (!data.rate_limit) return [];
-  const buckets: UsageBucket[] = [];
+  const buckets: QuotaBucket[] = [];
   addWindow(buckets, data.rate_limit.primary_window);
   addWindow(buckets, data.rate_limit.secondary_window);
   return buckets.length > 0 ? [{ prefix: "codex", buckets }] : [];
 }
 
 function addWindow(
-  buckets: UsageBucket[],
+  buckets: QuotaBucket[],
   window: CodexWindow | null | undefined,
 ): void {
   if (!window) return;
@@ -62,7 +62,7 @@ function authorizationFrom(auth: {
   return auth.apiKey ? `Bearer ${auth.apiKey}` : undefined;
 }
 
-export const codexAdapter: UsageProviderAdapter = {
+export const codexAdapter: QuotaProviderAdapter = {
   id: ADAPTER_ID,
   displayName: "OpenAI Codex",
 
@@ -109,7 +109,7 @@ export const codexAdapter: UsageProviderAdapter = {
     }
 
     const raw = await response.json();
-    const data = Value.Parse(CodexUsageResponseSchema, raw);
+    const data = Value.Parse(CodexQuotaResponseSchema, raw);
     const groups = normalizeGroups(data);
 
     cache.set(cacheKey, groups);

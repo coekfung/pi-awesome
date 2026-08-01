@@ -16,6 +16,6 @@
     "nono/**/*.ts",
     "notebook-edit/**/*.ts",
     "mcp/**/*.ts",
-    "usage/**/*.ts"
+    "quota/**/*.ts"
   ]
 }

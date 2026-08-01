@@ -17,7 +17,7 @@
       "./nono/nono.ts",
       "./notebook-edit/notebook-edit.ts",
       "./mcp/mcp.ts",
-      "./usage/usage.ts"
+      "./quota/quota.ts"
     ]
   },
   "dependencies": {

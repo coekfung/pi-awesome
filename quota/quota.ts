@@ -7,19 +7,19 @@ import {
   type ResourceDiagnostic,
 } from "@earendil-works/pi-coding-agent";
 
-import { formatUsageStatusline, parseConfigFile, type Config } from "./core.ts";
+import { formatQuotaStatusline, parseConfigFile, type Config } from "./core.ts";
 import { codexAdapter } from "./providers/codex.ts";
 import { deepseekAdapter } from "./providers/deepseek.ts";
 import { opencodeGoAdapter } from "./providers/opencode-go.ts";
-import type { UsageGroup, UsageProviderAdapter } from "./types.ts";
+import type { QuotaGroup, QuotaProviderAdapter } from "./types.ts";
 
-const STATUS_KEY = "usage";
+const STATUS_KEY = "quota";
 const CACHE_MAX = 32;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const QUERY_TIMEOUT_MS = 15_000;
 
-export default function usageExtension(pi: ExtensionAPI) {
-  const cache = new LRUCache<string, UsageGroup[]>({
+export default function quotaExtension(pi: ExtensionAPI) {
+  const cache = new LRUCache<string, QuotaGroup[]>({
     max: CACHE_MAX,
     ttl: CACHE_TTL_MS,
   });
@@ -28,10 +28,10 @@ export default function usageExtension(pi: ExtensionAPI) {
   // shutdown always aborts first, so `signal.aborted` marks a stale refresh.
   let inFlight: AbortController | undefined;
 
-  // usage.json config for the current session, passed to adapters.
+  // quota.json config for the current session, passed to adapters.
   let config: Config = {};
 
-  // Usage queries repeat every turn, so each distinct failure is reported
+  // Quota queries repeat every turn, so each distinct failure is reported
   // once per session instead of on every refresh.
   const notifiedFailures = new Set<string>();
 
@@ -57,7 +57,7 @@ export default function usageExtension(pi: ExtensionAPI) {
       );
 
       if (!signal.aborted) {
-        ctx.ui.setStatus(STATUS_KEY, formatUsageStatusline(groups, ctx));
+        ctx.ui.setStatus(STATUS_KEY, formatQuotaStatusline(groups, ctx));
       }
     } catch (error) {
       if (signal.aborted) return;
@@ -66,7 +66,7 @@ export default function usageExtension(pi: ExtensionAPI) {
       const key = `${adapter.id}:${msg}`;
       if (!notifiedFailures.has(key)) {
         notifiedFailures.add(key);
-        ctx.ui.notify(`Usage: ${adapter.displayName}: ${msg}`, "warning");
+        ctx.ui.notify(`Quota: ${adapter.displayName}: ${msg}`, "warning");
       }
     }
   };
@@ -88,9 +88,9 @@ export default function usageExtension(pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     const diagnostics: ResourceDiagnostic[] = [];
-    config = parseConfigFile(join(getAgentDir(), "usage.json"), diagnostics);
+    config = parseConfigFile(join(getAgentDir(), "quota.json"), diagnostics);
     for (const d of diagnostics) {
-      ctx.ui.notify(`Usage: ${d.message} (${d.path})`, "warning");
+      ctx.ui.notify(`Quota: ${d.message} (${d.path})`, "warning");
     }
     notifiedFailures.clear();
     scheduleRefresh(ctx);
@@ -117,7 +117,7 @@ export default function usageExtension(pi: ExtensionAPI) {
   });
 }
 
-const adapters: UsageProviderAdapter[] = [
+const adapters: QuotaProviderAdapter[] = [
   codexAdapter,
   deepseekAdapter,
   opencodeGoAdapter,

@@ -3,9 +3,9 @@ import { Value } from "typebox/value";
 
 import { cacheKeyForAuth } from "../core.ts";
 import type {
-  UsageBucket,
-  UsageGroup,
-  UsageProviderAdapter,
+  QuotaBucket,
+  QuotaGroup,
+  QuotaProviderAdapter,
 } from "../types.ts";
 
 // Expected JSON shape from the DeepSeek balance endpoint
@@ -24,8 +24,8 @@ const ADAPTER_ID = "deepseek";
 
 function normalizeGroups(data: {
   balance_infos: { currency: string; total_balance: string }[];
-}): UsageGroup[] {
-  const buckets: UsageBucket[] = [];
+}): QuotaGroup[] {
+  const buckets: QuotaBucket[] = [];
   for (const info of data.balance_infos) {
     const remaining = Number(info.total_balance);
     if (!Number.isFinite(remaining)) continue;
@@ -39,7 +39,7 @@ function normalizeGroups(data: {
   return buckets.length > 0 ? [{ prefix: "deepseek", buckets }] : [];
 }
 
-export const deepseekAdapter: UsageProviderAdapter = {
+export const deepseekAdapter: QuotaProviderAdapter = {
   id: ADAPTER_ID,
   displayName: "DeepSeek",
 

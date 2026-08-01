@@ -7,18 +7,18 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import type { UsageBucket, UsageGroup } from "./types.ts";
+import type { QuotaBucket, QuotaGroup } from "./types.ts";
 
 /** Salt regenerated on each process restart — cache keys are not persistent. */
 const FINGERPRINT_SALT = randomBytes(32);
 
 /**
- * usage.json contents — a map of provider id to provider-specific config.
+ * quota.json contents — a map of provider id to provider-specific config.
  * Adapters parse their own section; the shape is up to each provider.
  */
 export type Config = Record<string, any>;
 
-const UsageConfigSchema = Type.Record(Type.String(), Type.Unknown());
+const QuotaConfigSchema = Type.Record(Type.String(), Type.Unknown());
 
 export function parseConfigFile(
   path: string,
@@ -27,8 +27,8 @@ export function parseConfigFile(
   if (!existsSync(path)) return {};
   try {
     const raw: unknown = JSON.parse(readFileSync(path, "utf-8"));
-    if (!Value.Check(UsageConfigSchema, raw)) {
-      const error = Value.Errors(UsageConfigSchema, raw)[0];
+    if (!Value.Check(QuotaConfigSchema, raw)) {
+      const error = Value.Errors(QuotaConfigSchema, raw)[0];
       diagnostics.push({
         type: "warning",
         path,
@@ -36,7 +36,7 @@ export function parseConfigFile(
       });
       return {};
     }
-    return Value.Parse(UsageConfigSchema, raw);
+    return Value.Parse(QuotaConfigSchema, raw);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     diagnostics.push({
@@ -92,7 +92,7 @@ export function windowLabel(seconds: number): string {
 
 const STATUS_EMOJI = "📊";
 
-function formatBucket(bucket: UsageBucket): string {
+function formatBucket(bucket: QuotaBucket): string {
   switch (bucket.unit) {
     case "percent":
       return `${Math.round(bucket.remaining)}% ${bucket.label}`;
@@ -106,8 +106,8 @@ function formatBucket(bucket: UsageBucket): string {
 }
 
 /** Build an accent-colored single-line status string. */
-export function formatUsageStatusline(
-  groups: UsageGroup[],
+export function formatQuotaStatusline(
+  groups: QuotaGroup[],
   ctx: ExtensionContext,
 ): string | undefined {
   if (groups.length === 0) return undefined;
