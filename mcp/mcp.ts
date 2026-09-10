@@ -393,8 +393,7 @@ export default function mcp(pi: ExtensionAPI) {
     },
     renderResult(result, { expanded }, theme) {
       const details = result.details as
-        | { name: string; tools: Array<{ name: string }> }
-        | undefined;
+        { name: string; tools: Array<{ name: string }> } | undefined;
       if (!details) return fallbackText(result, theme);
 
       const count = details.tools.length;
@@ -463,8 +462,7 @@ export default function mcp(pi: ExtensionAPI) {
     },
     renderResult(result, { expanded }, theme) {
       const details = result.details as
-        | { server: string; tool: string; isError: boolean }
-        | undefined;
+        { server: string; tool: string; isError: boolean } | undefined;
 
       const textOutput = result.content
         .filter((c): c is { type: "text"; text: string } => c.type === "text")
