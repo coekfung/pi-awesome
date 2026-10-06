@@ -66,7 +66,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("message_update", async (event, ctx) => {
     if (event.message.role !== "assistant") return;
-    if (firstTokenAt !== undefined) return;
+    if (requestStartAt === undefined || firstTokenAt !== undefined) return;
 
     const streamEvent = event.assistantMessageEvent;
     if (
@@ -90,9 +90,19 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("message_end", async (event, ctx) => {
     if (event.message.role !== "assistant") return;
-    if (firstTokenAt === undefined) return;
+    ctx.ui.setWorkingMessage();
+    requestStartAt = undefined;
+    if (firstTokenAt === undefined) {
+      lastTtftMs = undefined;
+      lastTps = undefined;
+      ttftIsStale = false;
+      tpsIsStale = false;
+      updateStatus(ctx);
+      return;
+    }
 
     const generationMs = performance.now() - firstTokenAt;
+    firstTokenAt = undefined;
     const outputTokens = event.message.usage?.output;
     lastTps =
       typeof outputTokens === "number" && outputTokens > 0 && generationMs > 0
@@ -100,7 +110,6 @@ export default function (pi: ExtensionAPI) {
         : undefined;
     tpsIsStale = false;
     updateStatus(ctx);
-    ctx.ui.setWorkingMessage();
 
     // Defer appendEntry to turn_end so the assistant message is already
     // persisted in the session tree (message_end fires before persistence).
@@ -117,8 +126,33 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on("agent_settled", (_event, ctx) => {
+    requestStartAt = undefined;
+    firstTokenAt = undefined;
+    pendingMetrics = undefined;
+    if (ttftIsStale) lastTtftMs = undefined;
+    if (tpsIsStale) lastTps = undefined;
+    ttftIsStale = false;
+    tpsIsStale = false;
+    ctx.ui.setWorkingMessage();
     updateStatus(ctx);
+  });
+
+  pi.on("session_start", (_event, ctx) => {
+    requestStartAt = undefined;
+    firstTokenAt = undefined;
+    pendingMetrics = undefined;
+    lastTtftMs = undefined;
+    lastTps = undefined;
+    ttftIsStale = false;
+    tpsIsStale = false;
+    ctx.ui.setWorkingMessage();
+    updateStatus(ctx);
+  });
+
+  pi.on("session_shutdown", (_event, ctx) => {
+    ctx.ui.setWorkingMessage();
+    ctx.ui.setStatus(STATUS_KEY, undefined);
   });
 
   pi.registerCommand("perf", {

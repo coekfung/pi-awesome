@@ -1,10 +1,10 @@
 # pi-awesome
 
-A compact collection of practical extensions for [Pi](https://github.com/mariozechner/pi-coding-agent), focused on performance visibility, sandbox detection, notebook editing, and provider quota visibility.
+A compact collection of practical extensions for [Pi](https://github.com/earendil-works/pi), focused on performance visibility, sandbox detection, notebook editing, and provider quota visibility.
 
 ## What’s included
 
-- `perf/perf.ts` — shows TTFT and approximate output throughput in the UI status line; adds `/perf` for per-turn session metrics with provider/model info
+- `perf/perf.ts` — shows TTFT and approximate output throughput in the UI status line; adds `/perf` for per-turn session metrics with provider/model info, adapting to terminal size and theme changes
 - `nono/nono.ts` — reports nono installation and environment-based sandbox status
 - `notebook-edit/notebook-edit.ts` — provides a `notebook_edit` tool for editing Jupyter notebook cells (replace, insert, delete)
 - `quota/quota.ts` — shows the active model's provider quota in the status line; supports OpenAI Codex (e.g. `📊 codex: 59% 5h 61% wk`) and DeepSeek (e.g. `📊 deepseek: ¥59.00 rem`)
@@ -12,6 +12,8 @@ A compact collection of practical extensions for [Pi](https://github.com/marioze
 MCP integration uses Pi's built-in support; this package no longer provides an MCP extension.
 
 ## Installation
+
+Requires Pi 1.0.4 or later in the 1.x series.
 
 Install directly from GitHub:
 

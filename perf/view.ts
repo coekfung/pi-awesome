@@ -9,13 +9,7 @@ import {
   DynamicBorder,
   type ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import {
-  Container,
-  Text,
-  Spacer,
-  matchesKey,
-  Key,
-} from "@earendil-works/pi-tui";
+import { truncateToWidth, matchesKey, Key } from "@earendil-works/pi-tui";
 
 export interface PerfDisplayEntry {
   turn: number;
@@ -115,7 +109,6 @@ export async function showPerfTable(
   entries: PerfDisplayEntry[],
 ): Promise<void> {
   await ctx.ui.custom((tui, theme, _kb, done) => {
-    const maxVisible = Math.max(5, Math.floor(tui.terminal.rows / 2));
     let cursor = 0;
     let offset = 0;
 
@@ -192,73 +185,55 @@ export async function showPerfTable(
       return line;
     };
 
-    const container = new Container();
-
-    const buildUI = () => {
-      container.clear();
-      container.addChild(new Spacer(1));
-      container.addChild(new DynamicBorder());
-      container.addChild(
-        new Text(
-          theme.fg(
-            "accent",
-            theme.bold(`  Perf Metrics (${entries.length} turns)`),
-          ),
-          1,
-          0,
-        ),
-      );
-      container.addChild(
-        new Text(
-          theme.fg("muted", "  ↑↓ scroll · tab tokens · esc close"),
-          1,
-          0,
-        ),
-      );
-      container.addChild(new DynamicBorder());
-      container.addChild(new Text(theme.fg("dim", header()), 1, 0));
-      container.addChild(new Spacer(1));
-
-      const visible = entries.slice(offset, offset + maxVisible);
-      for (let i = 0; i < visible.length; i++) {
-        container.addChild(
-          new Text(renderRow(visible[i], offset + i === cursor), 1, 0),
-        );
-      }
-      for (let i = visible.length; i < maxVisible; i++) {
-        container.addChild(new Spacer(1));
-      }
-
-      container.addChild(new Spacer(1));
-      container.addChild(
-        new Text(
-          theme.fg("muted", `  (${cursor + 1}/${entries.length})`),
-          1,
-          0,
-        ),
-      );
-      container.addChild(new DynamicBorder());
-    };
-
-    buildUI();
+    const border = new DynamicBorder((text) => theme.fg("border", text));
 
     return {
-      render: (w: number) => container.render(w),
-      invalidate: () => container.invalidate(),
+      render: (width: number) => {
+        theme = ctx.ui.theme;
+        const height = Math.max(1, tui.terminal.rows - 1);
+        const compact = height < 9;
+        const maxVisible = Math.max(
+          1,
+          Math.min(Math.floor(height / 2), height - (compact ? 1 : 7)),
+        );
+        offset = Math.max(
+          0,
+          Math.min(offset, entries.length - maxVisible, cursor),
+        );
+        if (cursor >= offset + maxVisible) offset = cursor - maxVisible + 1;
+
+        const lines = compact
+          ? []
+          : [
+              border.render(width)[0] ?? "",
+              theme.fg(
+                "accent",
+                theme.bold(`  Perf Metrics (${entries.length} turns)`),
+              ),
+              theme.fg("muted", "  ↑↓ scroll · tab tokens · esc close"),
+              border.render(width)[0] ?? "",
+              theme.fg("dim", header()),
+            ];
+        const visible = entries.slice(offset, offset + maxVisible);
+        for (let i = 0; i < visible.length; i++) {
+          lines.push(renderRow(visible[i], offset + i === cursor));
+        }
+        if (lines.length < height) {
+          lines.push(theme.fg("muted", `  (${cursor + 1}/${entries.length})`));
+        }
+        if (!compact) lines.push(border.render(width)[0] ?? "");
+        return lines.map((line) => truncateToWidth(line, width));
+      },
+      invalidate: () => border.invalidate(),
       handleInput: (data: string) => {
         if (matchesKey(data, Key.up) && cursor > 0) {
           cursor--;
-          if (cursor < offset) offset = cursor;
-          buildUI();
           tui.requestRender();
         } else if (matchesKey(data, Key.down) && cursor < entries.length - 1) {
           cursor++;
-          if (cursor >= offset + maxVisible) offset = cursor - maxVisible + 1;
-          buildUI();
           tui.requestRender();
         } else if (matchesKey(data, Key.tab)) {
           showTokens = !showTokens;
-          buildUI();
           tui.requestRender();
         } else if (
           matchesKey(data, Key.escape) ||
