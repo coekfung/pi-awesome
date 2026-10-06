@@ -15,7 +15,6 @@
     "perf/**/*.ts",
     "nono/**/*.ts",
     "notebook-edit/**/*.ts",
-    "mcp/**/*.ts",
     "quota/**/*.ts"
   ]
 }

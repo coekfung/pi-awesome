@@ -16,12 +16,10 @@
       "./perf/perf.ts",
       "./nono/nono.ts",
       "./notebook-edit/notebook-edit.ts",
-      "./mcp/mcp.ts",
       "./quota/quota.ts"
     ]
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
     "lru-cache": "^11.5.2"
   },
   "peerDependencies": {

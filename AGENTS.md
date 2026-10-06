@@ -15,7 +15,6 @@
 - `perf/perf.ts` — UI performance footer
 - `nono/nono.ts` — nono sandbox detection
 - `notebook-edit/notebook-edit.ts` — Jupyter notebook cell editing tool
-- `mcp/mcp.ts` — MCP client with tool listing, calling, and status UI
 - `quota/quota.ts` — quota adapter framework and status-line display
 
 ## Code rules
