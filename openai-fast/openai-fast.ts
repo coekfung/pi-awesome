@@ -16,7 +16,7 @@ export default function (pi: ExtensionAPI) {
     }
 
     const theme = ctx.ui.theme;
-    const prefix = theme.fg("accent", "⚡ fast: ");
+    const prefix = theme.fg("accent", "⚡️ fast: ");
     const state = theme.fg(enabled ? "accent" : "dim", enabled ? "on" : "off");
     ctx.ui.setStatus("openai-fast", prefix + state);
   };
