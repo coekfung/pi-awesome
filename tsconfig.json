@@ -15,6 +15,7 @@
     "perf/**/*.ts",
     "nono/**/*.ts",
     "notebook-edit/**/*.ts",
-    "quota/**/*.ts"
+    "quota/**/*.ts",
+    "openai-fast/**/*.ts"
   ]
 }

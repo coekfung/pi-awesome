@@ -16,7 +16,8 @@
       "./perf/perf.ts",
       "./nono/nono.ts",
       "./notebook-edit/notebook-edit.ts",
-      "./quota/quota.ts"
+      "./quota/quota.ts",
+      "./openai-fast/openai-fast.ts"
     ]
   },
   "dependencies": {

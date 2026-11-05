@@ -8,6 +8,7 @@ A compact collection of practical extensions for [Pi](https://github.com/earendi
 - `nono/nono.ts` — reports nono installation and environment-based sandbox status
 - `notebook-edit/notebook-edit.ts` — provides a `notebook_edit` tool for editing Jupyter notebook cells (replace, insert, delete)
 - `quota/quota.ts` — shows the active model's provider quota in the status line; supports OpenAI Codex (e.g. `📊 codex: 59% 5h 61% wk`) and DeepSeek (e.g. `📊 deepseek: ¥59.00 rem`)
+- `openai-fast/openai-fast.ts` — toggles OpenAI/Codex fast mode with `/fast` and displays its status
 
 MCP integration uses Pi's built-in support; this package no longer provides an MCP extension.
 
@@ -32,7 +33,7 @@ npm run check:fix
 npm run test
 ```
 
-- Source code lives in per-extension subdirectories: `perf/`, `nono/`, `notebook-edit/`, `quota/`
+- Source code lives in per-extension subdirectories: `perf/`, `nono/`, `notebook-edit/`, `quota/`, `openai-fast/`
 - The project uses TypeScript with ESM modules
 - `npm run check` runs TypeScript and formatting checks
 - `npm run check:fix` applies Prettier fixes, then reruns checks
