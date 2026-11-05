@@ -28,7 +28,6 @@ import {
 import { homedir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 import { Type } from "typebox";
-import { StringEnum } from "@earendil-works/pi-ai";
 import {
   withFileMutationQueue,
   type ExtensionAPI,
@@ -73,12 +72,14 @@ const notebookEditSchema = Type.Object(
       }),
     ),
     cell_type: Type.Optional(
-      StringEnum(["code", "markdown"] as const, {
+      Type.Enum(["code", "markdown"], {
+        type: "string",
         description: "Type of the cell. Required when edit_mode is 'insert'.",
       }),
     ),
     edit_mode: Type.Optional(
-      StringEnum(["replace", "insert", "delete"] as const, {
+      Type.Enum(["replace", "insert", "delete"], {
+        type: "string",
         description: "Edit operation to perform. Defaults to 'replace'.",
       }),
     ),
