@@ -6,7 +6,7 @@ A compact collection of practical extensions for [Pi](https://github.com/earendi
 
 - `perf/perf.ts` — shows TTFT and approximate output throughput in the UI status line; adds `/perf` for per-turn session metrics with provider/model info, adapting to terminal size and theme changes
 - `nono/nono.ts` — reports nono installation and environment-based sandbox status
-- `notebook-edit/notebook-edit.ts` — provides a `notebook_edit` tool for editing Jupyter notebook cells (replace, insert, delete)
+- `notebook-edit/notebook-edit.ts` — disabled by default; provides a `notebook_edit` tool for editing Jupyter notebook cells (replace, insert, delete)
 - `quota/quota.ts` — shows the active model's provider quota in the status line; supports OpenAI Codex (e.g. `📊 codex: 59% 5h 61% wk`) and DeepSeek (e.g. `📊 deepseek: ¥59.00 rem`)
 - `openai-fast/openai-fast.ts` — toggles OpenAI/Codex fast mode with `/fast` and displays its status
 
